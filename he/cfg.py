@@ -31,8 +31,12 @@ class Data:
 
 @dataclass
 class Optim:
+    lr: float = 3e-4
+    warmup_epochs: int = 1
+    epochs: int = 1
     batch_size: int = 32
     workers: int = 1
+    device: str = 'cuda'
 
 
 @dataclass
@@ -42,7 +46,7 @@ class Backbone:
 
 @dataclass
 class Model:
-    type: str = 'simclr'
+    ssl_algo: str = 'simclr'
     backbone: Backbone = field(default_factory=lambda: Backbone())
     hidden_dim: int = 2048
     proj_dim: int = 128

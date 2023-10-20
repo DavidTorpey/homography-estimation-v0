@@ -9,7 +9,8 @@ from torch.backends import cudnn
 from he.cfg import load_config, Config
 from he.constants import LOG_FILE_NAME, CONFIG_FILE_NAME
 from he.data.data import get_loaders
-from he.utl import mkdir
+from he.model.model import get_model
+from he.utl import mkdir, cosine_scheduler
 
 
 def train(config: Config):
@@ -17,7 +18,15 @@ def train(config: Config):
 
     train_loader, val_loader = get_loaders(config)
 
-    model = get_model(config).to(config.optim.device)
+    ssl_model, homography_estimator = get_model(config)
+    ssl_model = ssl_model.to(config.optim.device)
+    homography_estimator = homography_estimator.to(config.optim.device)
+
+    lr_schedule = cosine_scheduler(
+        config.optim.lr, 0, config.optim.epochs, len(train_loader),
+        config.optim.warmup_epochs
+    )
+
 
 
 def parse_args():
