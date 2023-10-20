@@ -3,8 +3,8 @@ import logging
 import numpy as np
 from torchvision.datasets import CIFAR10
 
-from simclr.cfg import Config
-from simclr.data.dataset import SimCLRNumPyDataset
+from he.cfg import Config
+from he.data.dataset import SimCLRNumPyDataset
 
 
 def get_cifar10(config: Config, train_aug, val_aug):
@@ -21,9 +21,9 @@ def get_cifar10(config: Config, train_aug, val_aug):
     train_paths = images[:n_train]
     val_paths = images[n_train:]
 
-    train_dataset = SimCLRNumPyDataset(train_paths, train_aug)
+    train_dataset = SimCLRNumPyDataset(train_paths, train_aug, config)
 
-    val_dataset = SimCLRNumPyDataset(val_paths, val_aug)
+    val_dataset = SimCLRNumPyDataset(val_paths, val_aug, config)
 
     logging.info('Initialised CIFAR10 dataset: Train=%s, Val=%s', len(train_dataset), len(val_dataset))
 
