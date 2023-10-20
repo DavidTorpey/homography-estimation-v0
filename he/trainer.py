@@ -55,7 +55,7 @@ class Trainer:
         train_loss = 0.0
         train_affine_loss = 0.0
         train_contrastive_loss = 0.0
-        for batch_num, batch in train_loader:
+        for batch_num, batch in enumerate(train_loader):
             global_iteration = len(train_loader) * epoch + batch_num
 
             self.optimiser.param_groups[0]['lr'] = self.lr_schedule[global_iteration]
@@ -113,7 +113,7 @@ class Trainer:
         val_affine_loss = 0.0
         val_contrastive_loss = 0.0
         with torch.no_grad():
-            for batch_num, batch in val_loader:
+            for batch_num, batch in enumerate(val_loader):
                 x1t, x1at, affine_params1, x2t = batch
 
                 x1t = x1t.to(self.config.optim.device)

@@ -10,6 +10,7 @@ data:
 optim:
   lr: 3.0e-4
   weight_decay: 10.0e-6
+  epochs: 100
 model:
   hidden_dim: 512
   aggregation_strategy: concat
