@@ -67,6 +67,6 @@ class SimCLRNumPyDataset(Dataset):
         x1, x2 = self.tp(x1t), self.tp(x2t)
 
         x1t, x1at, affine_params1 = self.generate_affine_sample(x1)
-        x2t, x2at, affine_params2 = self.generate_affine_sample(x2)
+        x2t = self.tt(x2)
 
-        return x1t, x1at, affine_params1, x2t, x2at, affine_params2
+        return x1t, x1at, affine_params1, x2t

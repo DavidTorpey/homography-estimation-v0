@@ -37,6 +37,9 @@ class Optim:
     batch_size: int = 32
     workers: int = 1
     device: str = 'cuda'
+    contrastive_loss_weight: float = 1.0
+    affine_loss_weight: float = 1.0
+    grad_acc_steps: int = 1
 
 
 @dataclass
@@ -51,10 +54,12 @@ class Model:
     hidden_dim: int = 2048
     proj_dim: int = 128
     aggregation_strategy: str = 'concat'
+    affine_loss: str = 'mse'
 
 
 @dataclass
 class Config:
+    general: General
     data: Data
     optim: Optim = field(default_factory=lambda: Optim())
     model: Model = field(default_factory=lambda: Model())
