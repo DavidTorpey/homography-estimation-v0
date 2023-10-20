@@ -4,12 +4,14 @@ import os
 from argparse import ArgumentParser
 from dataclasses import asdict
 
+import torch
 from torch.backends import cudnn
 
 from he.cfg import load_config, Config
 from he.constants import LOG_FILE_NAME, CONFIG_FILE_NAME
 from he.data.data import get_loaders
 from he.model.model import get_model
+from he.trainer import Trainer
 from he.utl import mkdir, cosine_scheduler
 
 
@@ -26,6 +28,16 @@ def train(config: Config):
         config.optim.lr, 0, config.optim.epochs, len(train_loader),
         config.optim.warmup_epochs
     )
+
+    optimiser = torch.optim.Adam(
+        list(ssl_model.parameters()) + list(homography_estimator.parameters()),
+        lr=config.optim.lr,
+        weight_decay=config.optim.lr
+    )
+
+    trainer = Trainer(ssl_model, homography_estimator, optimiser, lr_schedule, config)
+
+    trainer.train(train_loader, val_loader)
 
 
 

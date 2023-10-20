@@ -25,6 +25,6 @@ def get_cifar100(config: Config, train_aug, val_aug):
 
     val_dataset = SimCLRNumPyDataset(val_paths, val_aug, config)
 
-    logging.info('Initialised CIFAR10 dataset: Train=%s, Val=%s', len(train_dataset), len(val_dataset))
+    logging.info('Initialised CIFAR100 dataset: Train=%s, Val=%s', len(train_dataset), len(val_dataset))
 
     return train_dataset, val_dataset

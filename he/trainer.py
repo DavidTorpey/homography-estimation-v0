@@ -156,10 +156,10 @@ class Trainer:
             'train/loss': val_loss,
         }
 
-    def train(self, train_loader, val_loader, start_epoch):
+    def train(self, train_loader, val_loader):
         best_val_loss = np.inf
 
-        for epoch in range(start_epoch, self.config.optim.epochs):
+        for epoch in range(self.config.optim.epochs):
             logging.info('Epoch %s/%s', epoch + 1, self.config.optim.epochs)
 
             train_metrics = self.train_one_epoch(train_loader, epoch)
