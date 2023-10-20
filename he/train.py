@@ -16,8 +16,6 @@ from he.utl import mkdir, cosine_scheduler
 
 
 def train(config: Config):
-    cudnn.benchmark = True
-
     train_loader, val_loader = get_loaders(config)
 
     ssl_model, homography_estimator = get_model(config)
