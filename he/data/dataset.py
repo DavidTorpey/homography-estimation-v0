@@ -8,6 +8,7 @@ import torchvision.transforms.functional as tvF
 from he.cfg import Config
 from he.constants import STD, MEAN
 from he.data.augmentations import get_maximal_crop
+from he.data import tv_transforms_new
 
 
 class SimCLRNumPyDataset(Dataset):
@@ -31,24 +32,20 @@ class SimCLRNumPyDataset(Dataset):
         return len(self.images)
 
     def generate_affine_sample(self, x):
-        ret = self.affine_transform.get_params(
-            degrees=[-self.config.data.max_degrees, self.config.data.max_degrees],
-            translate=[self.config.data.max_translate, self.config.data.max_translate],
-            scale_ranges=[self.config.data.min_scale, self.config.data.max_scale],
-            shears=[
-                -self.config.data.max_shear, self.config.data.max_shear,
-                -self.config.data.max_shear, self.config.data.max_shear
-            ],
-            img_size=x.size
+        random_affine = tv_transforms_new.RandomAffine(
+            degrees=self.config.data.max_degrees,
+            translate=(self.config.data.max_translate, self.config.data.max_translate),
+            scale=(self.config.data.min_scale, self.config.data.max_scale),
+            shear=[
+                -self.config.data.max_shear,
+                self.config.data.max_shear,
+                -self.config.data.max_shear,
+                self.config.data.max_shear,
+            ]
         )
-        angle, (tx, ty), scale, shear = ret
-
-        if self.config.data.crop_after_transform:
-            x_affine = self.crop_resize(get_maximal_crop(x, angle, scale, (tx, ty), shear))
-        else:
-            x_affine = tvF.affine(x, *ret, interpolation=tvF.InterpolationMode.NEAREST, fill=0, center=None)
-
-        angle = angle / self.config.data.max_degrees
+        x1t, params = random_affine(x)
+        angle, (tx, ty), scale, shear = params
+        angle = angle / 360
         tx = tx / self.config.data.image_size
         ty = ty / self.config.data.image_size
         shearx = shear[0] / self.config.data.max_shear
@@ -58,7 +55,7 @@ class SimCLRNumPyDataset(Dataset):
             angle, tx, ty, scale, shearx, sheary
         ])).float()
 
-        return self.tt(x), self.tt(x_affine), affine_params
+        return self.tt(x), self.tt(x1t), affine_params
 
     def __getitem__(self, item):
         image = Image.fromarray(self.images[item])
