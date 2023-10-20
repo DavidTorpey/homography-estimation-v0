@@ -151,9 +151,9 @@ class Trainer:
         self.homography_estimator.train()
 
         return {
-            'train/contrastive_loss': val_contrastive_loss,
-            'train/affine_loss': val_affine_loss,
-            'train/loss': val_loss,
+            'val/contrastive_loss': val_contrastive_loss,
+            'val/affine_loss': val_affine_loss,
+            'val/loss': val_loss,
         }
 
     def train(self, train_loader, val_loader):
