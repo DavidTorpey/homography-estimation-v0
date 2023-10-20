@@ -30,7 +30,7 @@ def train(config: Config):
     optimiser = torch.optim.Adam(
         list(ssl_model.parameters()) + list(homography_estimator.parameters()),
         lr=config.optim.lr,
-        weight_decay=config.optim.lr
+        weight_decay=config.optim.weight_decay
     )
 
     trainer = Trainer(ssl_model, homography_estimator, optimiser, lr_schedule, config)

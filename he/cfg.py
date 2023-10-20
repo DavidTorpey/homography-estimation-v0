@@ -32,6 +32,7 @@ class Data:
 @dataclass
 class Optim:
     lr: float = 3e-4
+    weight_decay: float = 10e-6
     warmup_epochs: int = 1
     epochs: int = 1
     batch_size: int = 32
