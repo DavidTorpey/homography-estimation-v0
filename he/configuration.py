@@ -31,6 +31,7 @@ class Data:
 class Trainer:
     batch_size: int = 256
     epochs: int = 100
+    warmup_epochs: int = 10
     num_workers: int = 4
 
 

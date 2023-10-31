@@ -65,16 +65,19 @@ def main():
         optimizer, T_max=len(train_loader), eta_min=0, last_epoch=-1
     )
 
+    warmup_steps = config.trainer.warmup_epochs
     run_folder = config.general.output_dir
     Path(run_folder).mkdir(parents=True, exist_ok=True)
 
     if config.data.dataset_type == 'default':
         trainer = Trainer(
-            model, optimizer, scheduler, batch_size, epochs, device, dataset
+            model, optimizer, scheduler, batch_size, epochs, device, dataset,
+            run_folder, warmup_steps
         )
     elif config.data.dataset_type == 'affine':
         trainer = AffineTrainer(
-            model, param_head, optimizer, scheduler, batch_size, epochs, device, dataset, run_folder
+            model, param_head, optimizer, scheduler, batch_size,
+            epochs, device, dataset, run_folder, warmup_steps
         )
     else:
         raise Exception(f'Dataset type not supported: {config.data.dataset_type}')

@@ -9,7 +9,7 @@ from .nt_xent import NTXentLoss
 
 
 class Trainer:
-    def __init__(self, model, optimizer, scheduler, batch_size, epochs, device, dataset, run_folder):
+    def __init__(self, model, optimizer, scheduler, batch_size, epochs, device, dataset, run_folder, warmup_steps):
         self.model = model
         self.optimizer = optimizer
         self.scheduler = scheduler
@@ -18,6 +18,7 @@ class Trainer:
         self.device = device
         self.dataset = dataset
         self.run_folder = run_folder
+        self.warmup_steps = warmup_steps
 
         self.model_name = 'model_{}.pth'.format(self.dataset)
 
@@ -83,7 +84,7 @@ class Trainer:
                 model_file_path = 'model_{}_old.pth'.format(self.dataset)
                 torch.save(self.model.state_dict(), model_file_path)
 
-            if epoch_counter >= 10:
+            if epoch_counter >= self.warmup_steps:
                 self.scheduler.step()
 
             valid_n_iter += 1
@@ -96,7 +97,7 @@ class Trainer:
 
 
 class AffineTrainer:
-    def __init__(self, model, param_head, optimizer, scheduler, batch_size, epochs, device, dataset, run_folder):
+    def __init__(self, model, param_head, optimizer, scheduler, batch_size, epochs, device, dataset, run_folder, warmup_steps):
         self.model = model
         self.param_head = param_head
         self.optimizer = optimizer
@@ -106,6 +107,7 @@ class AffineTrainer:
         self.device = device
         self.dataset = dataset
         self.run_folder = run_folder
+        self.warmup_steps = warmup_steps
 
         self.nt_xent_criterion = NTXentLoss(
             device, batch_size, 0.5, True
@@ -186,7 +188,7 @@ class AffineTrainer:
                     './results/{}/{}'.format(self.run_folder, self.model_name)
                 )
 
-            if epoch_counter >= 10:
+            if epoch_counter >= self.warmup_steps:
                 self.scheduler.step()
 
             valid_n_iter += 1
