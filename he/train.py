@@ -1,3 +1,5 @@
+import logging
+import os
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
@@ -25,18 +27,31 @@ def main():
     config_dict = yaml.load(open(args.config_path, "r"), Loader=yaml.FullLoader)
     config: Config = dacite.from_dict(Config, config_dict)
 
+    run_folder = config.general.output_dir
+    Path(run_folder).mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(module)s:%(funcName)s:%(lineno)d - %(message)s',
+        handlers=[
+            logging.FileHandler(os.path.join(config.general.output_dir, 'out.log')),
+            logging.StreamHandler()
+        ]
+    )
+
     dataset = config.data.dataset
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f"Training with: {device}")
-    print('Using dataset:', dataset)
+    logging.info(f"Training with: {device}")
+    logging.info('Using dataset:', dataset)
 
     train_loader, valid_loader = get_data(config)
 
+    logging.info('Initialising SimCLR model')
     model = ResNetSimCLR(config).to(device)
 
     param_head = None
     if config.data.dataset_type == 'affine':
+        logging.info('Initialising param head')
         param_head = MLPHead(
             in_channels=512,
             hidden_size=config.network.pred_head.hidden_size,
@@ -66,9 +81,8 @@ def main():
     )
 
     warmup_steps = config.trainer.warmup_epochs
-    run_folder = config.general.output_dir
-    Path(run_folder).mkdir(parents=True, exist_ok=True)
 
+    logging.info('Initialising trainer for dataset_type=%s', config.data.dataset_type)
     if config.data.dataset_type == 'default':
         trainer = Trainer(
             model, optimizer, scheduler, batch_size, epochs, device, dataset,

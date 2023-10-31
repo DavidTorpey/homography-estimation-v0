@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 from torchvision import datasets
 
@@ -11,6 +13,8 @@ from he.data.utils import get_train_validation_data_loaders
 def get_default(config: Config):
     data_transform = get_simclr_data_transforms(config)
     dataset = config.data.dataset
+
+    logging.info('Initialising dataset: %s', dataset)
 
     if dataset == 'stl10':
         train_dataset = datasets.STL10(
@@ -40,6 +44,7 @@ def get_default(config: Config):
 
 def get_affine(config: Config):
     dataset = config.data.dataset
+    logging.info('Initialising dataset: %s', dataset)
 
     if dataset == 'stl10':
         train_dataset = datasets.STL10('./data', split='train+unlabeled', download=True)
@@ -64,6 +69,7 @@ def get_affine(config: Config):
 
 
 def get_data(config: Config):
+    logging.info('Initialising dataset for dataset_type=%s', config.data.dataset_type)
     if config.data.dataset_type == 'default':
         train_dataset = get_default(config)
     elif config.data.dataset_type == 'affine':

@@ -1,3 +1,4 @@
+import logging
 import os
 
 import numpy as np
@@ -64,7 +65,7 @@ class Trainer:
         best_valid_loss = np.inf
 
         for epoch_counter in range(self.epochs):
-            print(epoch_counter + 1, self.epochs)
+            logging.info('%s/%s', epoch_counter + 1, self.epochs)
             for (xis, xjs), _ in train_loader:
                 self.optimizer.zero_grad()
 
@@ -164,7 +165,7 @@ class AffineTrainer:
         best_valid_loss = np.inf
 
         for epoch_counter in range(self.epochs):
-            print(epoch_counter + 1, self.epochs)
+            logging.info('%s/%s', epoch_counter + 1, self.epochs)
             for xis, xjs, xits, gt_params in train_loader:
                 self.optimizer.zero_grad()
 
@@ -196,5 +197,5 @@ class AffineTrainer:
             if epoch_counter % 10 == 0:
                 torch.save(
                     self.model.state_dict(),
-                    './results/{}/checkpoints/'.format(self.run_folder) + str(epoch_counter) + '_' + self.model_name
+                    os.path.join(self.run_folder, str(epoch_counter) + '_' + self.model_name)
                 )
