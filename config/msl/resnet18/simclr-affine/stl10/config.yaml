@@ -1,3 +1,5 @@
+general:
+  output_dir: ./results/resnet18/simclr-affine/stl10
 network:
   name: resnet18
   mlp_head:
