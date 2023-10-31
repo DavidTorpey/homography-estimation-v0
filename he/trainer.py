@@ -186,7 +186,7 @@ class AffineTrainer:
                 best_valid_loss = valid_loss
                 torch.save(
                     self.model.state_dict(),
-                    './results/{}/{}'.format(self.run_folder, self.model_name)
+                    os.path.join(self.run_folder, self.model_name)
                 )
 
             if epoch_counter >= self.warmup_steps:
