@@ -1,69 +1,85 @@
-import json
-import logging
-import os
+import sys
 from argparse import ArgumentParser
-from dataclasses import asdict
+from pathlib import Path
 
+import dacite
 import torch
-from torch.backends import cudnn
+import yaml
+from torchvision import datasets
 
-from he.cfg import load_config, Config
-from he.constants import LOG_FILE_NAME, CONFIG_FILE_NAME
-from he.data.data import get_loaders
-from he.model.model import get_model
-from he.trainer import Trainer
-from he.utl import mkdir, cosine_scheduler
-
-
-def train(config: Config):
-    train_loader, val_loader = get_loaders(config)
-
-    ssl_model, homography_estimator = get_model(config)
-    ssl_model = ssl_model.to(config.optim.device)
-    homography_estimator = homography_estimator.to(config.optim.device)
-
-    lr_schedule = cosine_scheduler(
-        config.optim.lr, 0, config.optim.epochs, len(train_loader),
-        config.optim.warmup_epochs
-    )
-
-    optimiser = torch.optim.Adam(
-        list(ssl_model.parameters()) + list(homography_estimator.parameters()),
-        lr=config.optim.lr,
-        weight_decay=config.optim.weight_decay
-    )
-
-    trainer = Trainer(ssl_model, homography_estimator, optimiser, lr_schedule, config)
-
-    trainer.train(train_loader, val_loader)
-
-
-
-def parse_args():
-    parser = ArgumentParser()
-    parser.add_argument('--config_path', type=str, required=True)
-    return parser.parse_args()
+from he.configuration import Config
+from he.data.data import get_data
+from he.model.projection_head import MLPHead
+from .data.augmentations import get_simclr_data_transforms
+from .data.multiview_injector import MultiViewDataInjector
+from .model.backbone import ResNetSimCLR
+from .data.utils import get_train_validation_data_loaders
+from .trainer import Trainer, AffineTrainer
 
 
 def main():
-    args = parse_args()
+    parser = ArgumentParser()
+    parser.add_argument('--config_path', type=str, required=True)
+    args = parser.parse_args()
 
-    config = load_config(args.config_path)
+    config_dict = yaml.load(open(args.config_path, "r"), Loader=yaml.FullLoader)
+    config: Config = dacite.from_dict(Config, config_dict)
 
-    mkdir(config.general.output_dir)
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s [%(levelname)s] %(module)s:%(funcName)s:%(lineno)d - %(message)s',
-        handlers=[
-            logging.FileHandler(os.path.join(config.general.output_dir, LOG_FILE_NAME)),
-            logging.StreamHandler()
-        ]
+    dataset = config.data.dataset
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"Training with: {device}")
+    print('Using dataset:', dataset)
+
+    train_loader, valid_loader = get_data(config)
+
+    model = ResNetSimCLR(config).to(device)
+
+    param_head = None
+    if config.data.dataset_type == 'affine':
+        param_head = MLPHead(
+            in_channels=512,
+            hidden_size=config.network.pred_head.hidden_size,
+            proj_size=config.network.pred_head.proj_size
+        ).to(device)
+
+    if config.data.dataset_type == 'default':
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            lr=config.optimiser.lr,
+            weight_decay=config.optimiser.weight_decay
+        )
+    elif config.data.dataset_type == 'affine':
+        optimizer = torch.optim.Adam(
+            list(model.parameters()) + list(param_head.parameters()),
+            lr=config.optimiser.lr,
+            weight_decay=config.optimiser.weight_decay
+        )
+    else:
+        raise Exception(f'Dataset type not supported: {config.data.dataset_type}')
+
+    batch_size = config.trainer.batch_size
+    epochs = config.trainer.epochs
+
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=len(train_loader), eta_min=0, last_epoch=-1
     )
 
-    with open(os.path.join(config.general.output_dir, CONFIG_FILE_NAME), 'w') as handle:
-        json.dump(asdict(config), handle, indent=2)
+    run_folder = config.general.output_dir
+    Path(run_folder).mkdir(parents=True, exist_ok=True)
 
-    train(config)
+    if config.data.dataset_type == 'default':
+        trainer = Trainer(
+            model, optimizer, scheduler, batch_size, epochs, device, dataset
+        )
+    elif config.data.dataset_type == 'affine':
+        trainer = AffineTrainer(
+            model, param_head, optimizer, scheduler, batch_size, epochs, device, dataset, run_folder
+        )
+    else:
+        raise Exception(f'Dataset type not supported: {config.data.dataset_type}')
+
+    trainer.train(train_loader, valid_loader)
 
 
 if __name__ == '__main__':
