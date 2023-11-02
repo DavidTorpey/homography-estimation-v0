@@ -1,7 +1,7 @@
 general:
-  output_dir: ./results/resnet18/simclr/cifar10
+  output_dir: ./results/resnet50/simclr/cifar10
 network:
-  name: resnet18
+  name: resnet50
   mlp_head:
     hidden_size: 512
     proj_size: 128
