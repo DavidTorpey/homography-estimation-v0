@@ -53,7 +53,7 @@ def main():
     if config.data.dataset_type == 'affine':
         logging.info('Initialising param head')
         param_head = MLPHead(
-            in_channels=512,
+            in_channels=512 if config.network.name == 'resnet18' else 2048,
             hidden_size=config.network.pred_head.hidden_size,
             proj_size=config.network.pred_head.proj_size
         ).to(device)
