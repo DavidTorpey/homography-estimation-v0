@@ -1,24 +1,29 @@
-import logging
+import torch
+from torchvision import models
 
-from torch import nn
-from torchvision.models import resnet50, resnet18
-
-from he.cfg import Config
+from .projection_head import MLPHead
+from ..configuration import Config
 
 
-def get_backbone(config: Config):
-    backbone_name = config.model.backbone.name
-    logging.info('Initialising backbone: %s', backbone_name)
+class ResNetSimCLR(torch.nn.Module):
+    def __init__(self, config: Config):
+        super(ResNetSimCLR, self).__init__()
+        name = config.network.name
+        if name == 'resnet18':
+            resnet = models.resnet18(pretrained=False)
+        elif name == 'resnet50':
+            resnet = models.resnet50(pretrained=False)
+        elif name == 'resnet50_2':
+            resnet = models.wide_resnet50_2(pretrained=False)
 
-    if backbone_name == 'resnet50':
-        backbone = resnet50()
-        backbone.fc = nn.Identity()
-        backbone.out_dim = 2048
-    elif backbone_name == 'resnet18':
-        backbone = resnet18()
-        backbone.fc = nn.Identity()
-        backbone.out_dim = 512
-    else:
-        raise NotImplementedError(f'Backbone {backbone_name} not supported.')
+        self.encoder = torch.nn.Sequential(*list(resnet.children())[:-1])
+        self.projection = MLPHead(
+            in_channels=resnet.fc.in_features,
+            hidden_size=config.network.mlp_head.hidden_size,
+            proj_size=config.network.mlp_head.proj_size
+        )
 
-    return backbone
+    def forward(self, x):
+        h = self.encoder(x)
+        h = h.view(h.shape[0], h.shape[1])
+        return h, self.projection(h)

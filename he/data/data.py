@@ -1,31 +1,85 @@
-from torch.utils.data import DataLoader
+import logging
 
-from he.cfg import Config
-from he.data.augmentations import get_transform
-from he.data.cifar10 import get_cifar10
-from he.data.cifar100 import get_cifar100
+import numpy as np
+from torchvision import datasets
 
-def get_loaders(config: Config):
+from he.configuration import Config
+from he.data.augmentations import get_simclr_data_transforms
+from he.data.dataset import CustomDataset
+from he.data.multiview_injector import MultiViewDataInjector
+from he.data.utils import get_train_validation_data_loaders
+
+
+def get_default(config: Config):
+    data_transform = get_simclr_data_transforms(config)
     dataset = config.data.dataset
 
-    train_transform = get_transform(config.data.train_aug, config)
-    val_transform = get_transform(config.data.val_aug, config)
+    logging.info('Initialising dataset: %s', dataset)
 
-    if dataset == 'cifar10':
-        train_dataset, val_dataset = get_cifar10(config, train_transform, val_transform)
+    if dataset == 'stl10':
+        train_dataset = datasets.STL10(
+            './data', split='train+unlabeled', download=True,
+            transform=MultiViewDataInjector([data_transform, data_transform])
+        )
+    elif dataset == 'cifar10':
+        train_dataset = datasets.CIFAR10(
+            './data', train=True, download=True,
+            transform=MultiViewDataInjector([data_transform, data_transform])
+        )
+    elif dataset == 'svhn':
+        train_dataset = datasets.SVHN(
+            './data', split='train', download=True,
+            transform=MultiViewDataInjector([data_transform, data_transform])
+        )
     elif dataset == 'cifar100':
-        train_dataset, val_dataset = get_cifar100(config, train_transform, val_transform)
+        train_dataset = datasets.CIFAR100(
+            './data', train=True, download=True,
+            transform=MultiViewDataInjector([data_transform, data_transform])
+        )
     else:
-        raise NotImplementedError(f'Dataset {dataset} not supported')
+        raise Exception(f'Dataset not supported: {dataset}')
 
-    train_loader = DataLoader(
-        train_dataset, batch_size=config.optim.batch_size, drop_last=True,
-        shuffle=True, num_workers=config.optim.workers, pin_memory=True
+    return train_dataset
+
+
+def get_affine(config: Config):
+    dataset = config.data.dataset
+    logging.info('Initialising dataset: %s', dataset)
+
+    if dataset == 'stl10':
+        train_dataset = datasets.STL10('./data', split='train+unlabeled', download=True)
+        trainset = train_dataset.data
+        trainset = np.swapaxes(np.swapaxes(trainset, 1, 2), 2, 3)
+    elif dataset == 'cifar10':
+        train_dataset = datasets.CIFAR10('./data', train=True, download=True)
+        trainset = train_dataset.data
+    elif dataset == 'svhn':
+        train_dataset = datasets.SVHN('./data', split='train', download=True)
+        trainset = train_dataset.data
+        trainset = np.swapaxes(np.swapaxes(trainset, 1, 2), 2, 3)
+    elif dataset == 'cifar100':
+        train_dataset = datasets.CIFAR100('./data', train=True, download=True)
+        trainset = train_dataset.data
+    else:
+        raise Exception(f'Dataset not supported: {dataset}')
+
+    train_dataset = CustomDataset(trainset, config)
+
+    return train_dataset
+
+
+def get_data(config: Config):
+    logging.info('Initialising dataset for dataset_type=%s', config.data.dataset_type)
+    if config.data.dataset_type == 'default':
+        train_dataset = get_default(config)
+    elif config.data.dataset_type == 'affine':
+        train_dataset = get_affine(config)
+    else:
+        raise Exception(f'Dataset type not supported: {config.data.dataset_type}')
+
+    train_loader, valid_loader = get_train_validation_data_loaders(
+        train_dataset, 0.05, config.trainer.batch_size,
+        config.trainer.num_workers
     )
 
-    val_loader = DataLoader(
-        val_dataset, batch_size=config.optim.batch_size, drop_last=True,
-        shuffle=False, num_workers=config.optim.workers, pin_memory=True
-    )
-
-    return train_loader, val_loader
+    return train_loader, valid_loader

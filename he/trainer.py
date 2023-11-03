@@ -1,201 +1,201 @@
 import logging
 import os
-from dataclasses import asdict
 
 import numpy as np
 import torch
-import wandb
-from lightly.loss import NTXentLoss
+import torch.nn.functional as F
 from torch import nn
-from torch.optim import Optimizer
 
-from he.cfg import Config
-from he.constants import LATEST_MODEL_FILE_NAME
+from .nt_xent import NTXentLoss
 
 
 class Trainer:
-    def __init__(self, ssl_model, homography_estimator, optimiser: Optimizer, lr_schedule, config: Config):
-        self.ssl_model = ssl_model
-        self.homography_estimator = homography_estimator
-        self.optimiser = optimiser
-        self.lr_schedule = lr_schedule
-        self.config = config
+    def __init__(self, model, optimizer, scheduler, batch_size, epochs, device, dataset, run_folder, warmup_steps):
+        self.model = model
+        self.optimizer = optimizer
+        self.scheduler = scheduler
+        self.batch_size = batch_size
+        self.epochs = epochs
+        self.device = device
+        self.dataset = dataset
+        self.run_folder = run_folder
+        self.warmup_steps = warmup_steps
 
-        self.nt_xent_loss = NTXentLoss()
+        self.model_name = 'model_{}.pth'.format(self.dataset)
 
-        if config.model.affine_loss == 'mse':
-            self.affine_loss_fn = nn.MSELoss()
-        else:
-            raise NotImplementedError(f'Affine loss not supported: {config.model.affine_loss}')
+        self.nt_xent_criterion = NTXentLoss(
+            device, batch_size, 0.5, True
+        )
 
-        if config.general.log_to_wandb:
-            wandb.init(
-                project='phd', config=asdict(config),
-                name=f'SimCLR Homography Estimation : {config.data.dataset}',
-                tags=[f'run_id: {config.general.run_id}'],
-            )
+    def _step(self, xis, xjs):
+        ris, zis = self.model(xis)  # [N,C]
 
-    def aggregate_vectors(self, z, za):
-        if self.config.model.aggregation_strategy == 'concat':
-            affine_representation = torch.cat([z, za], dim=-1)
-        elif self.config.model.aggregation_strategy == 'diff':
-            affine_representation = z - za
-        elif self.config.model.aggregation_strategy == 'sum':
-            affine_representation = z + za
-        elif self.config.model.aggregation_strategy == 'mean':
-            affine_representation = (z + za) / 2.0
-        else:
-            raise NotImplementedError(
-                f'Aggregation strategy not supported: {self.config.model.aggregation_strategy}'
-            )
+        # get the representations and the projections
+        rjs, zjs = self.model(xjs)  # [N,C]
 
-        return affine_representation
+        # normalize projection feature vectors
+        zis = F.normalize(zis, dim=1)
+        zjs = F.normalize(zjs, dim=1)
 
-    def train_one_epoch(self, train_loader, epoch):
-        train_loss = 0.0
-        train_affine_loss = 0.0
-        train_contrastive_loss = 0.0
-        for batch_num, batch in enumerate(train_loader):
-            global_iteration = len(train_loader) * epoch + batch_num
+        loss = self.nt_xent_criterion(zis, zjs)
 
-            self.optimiser.param_groups[0]['lr'] = self.lr_schedule[global_iteration]
+        return loss
 
-            x1t, x1at, affine_params1, x2t = batch
-
-            x1t = x1t.to(self.config.optim.device)
-            x1at = x1at.to(self.config.optim.device)
-            affine_params1 = affine_params1.to(self.config.optim.device)
-
-            x2t = x2t.to(self.config.optim.device)
-
-            z1, h1 = self.ssl_model(x1t)
-            za1, ha1 = self.ssl_model(x1at)
-            z2, h2 = self.ssl_model(x2t)
-
-            contrastive_loss = self.nt_xent_loss(z1, z2)
-
-            affine_representation = self.aggregate_vectors(h1, ha1)
-            affine_params_pred = self.homography_estimator(affine_representation)
-            affine_loss = self.affine_loss_fn(affine_params_pred, affine_params1)
-
-            loss = (
-                    self.config.optim.contrastive_loss_weight * contrastive_loss +
-                    self.config.optim.affine_loss_weight * affine_loss
-            )
-
-            loss = loss / self.config.optim.grad_acc_steps
-
-            train_contrastive_loss += float(contrastive_loss.item())
-            train_affine_loss += float(affine_loss.item())
-            train_loss += float(loss.item())
-
-            loss.backward()
-
-            if ((batch_num + 1) % self.config.optim.grad_acc_steps == 0) or ((batch_num + 1) == len(train_loader)):
-                self.optimiser.step()
-                self.optimiser.zero_grad()
-
-        train_contrastive_loss /= len(train_loader)
-        train_affine_loss /= len(train_loader)
-        train_loss /= len(train_loader)
-
-        return {
-            'train/contrastive_loss': train_contrastive_loss,
-            'train/affine_loss': train_affine_loss,
-            'train/loss': train_loss,
-        }
-
-    def validate_one_epoch(self, val_loader):
-        self.ssl_model.eval()
-        self.homography_estimator.eval()
-
-        val_loss = 0.0
-        val_affine_loss = 0.0
-        val_contrastive_loss = 0.0
+    def _validate(self, val_loader):
         with torch.no_grad():
-            for batch_num, batch in enumerate(val_loader):
-                x1t, x1at, affine_params1, x2t = batch
+            self.model.eval()
 
-                x1t = x1t.to(self.config.optim.device)
-                x1at = x1at.to(self.config.optim.device)
-                affine_params1 = affine_params1.to(self.config.optim.device)
+            valid_loss = 0.0
+            counter = 0
+            for (xis, xjs), _ in val_loader:
+                xis = xis.to(self.device)
+                xjs = xjs.to(self.device)
 
-                x2t = x2t.to(self.config.optim.device)
+                loss = self._step(xis, xjs)
+                valid_loss += loss.item()
+                counter += 1
+            valid_loss /= counter
+        self.model.train()
 
-                z1, h1 = self.ssl_model(x1t)
-                za1, ha1 = self.ssl_model(x1at)
-                z2, h2 = self.ssl_model(x2t)
-
-                contrastive_loss = self.nt_xent_loss(z1, z2)
-
-                affine_representation = self.aggregate_vectors(h1, ha1)
-                affine_params_pred = self.homography_estimator(affine_representation)
-                affine_loss = self.affine_loss_fn(affine_params_pred, affine_params1)
-
-                loss = (
-                        self.config.optim.contrastive_loss_weight * contrastive_loss +
-                        self.config.optim.affine_loss_weight * affine_loss
-                )
-
-                loss = loss / self.config.optim.grad_acc_steps
-
-                val_contrastive_loss += float(contrastive_loss.item())
-                val_affine_loss += float(affine_loss.item())
-                val_loss += float(loss.item())
-
-        val_contrastive_loss /= len(val_loader)
-        val_affine_loss /= len(val_loader)
-        val_loss /= len(val_loader)
-
-        self.ssl_model.train()
-        self.homography_estimator.train()
-
-        return {
-            'val/contrastive_loss': val_contrastive_loss,
-            'val/affine_loss': val_affine_loss,
-            'val/loss': val_loss,
-        }
+        return valid_loss
 
     def train(self, train_loader, val_loader):
-        best_val_loss = np.inf
+        n_iter = 0
+        valid_n_iter = 0
+        best_valid_loss = np.inf
 
-        for epoch in range(self.config.optim.epochs):
-            logging.info('Epoch %s/%s', epoch + 1, self.config.optim.epochs)
+        for epoch_counter in range(self.epochs):
+            logging.info('%s/%s', epoch_counter + 1, self.epochs)
+            for (xis, xjs), _ in train_loader:
+                self.optimizer.zero_grad()
 
-            train_metrics = self.train_one_epoch(train_loader, epoch)
+                xis = xis.to(self.device)
+                xjs = xjs.to(self.device)
 
-            val_metrics = self.validate_one_epoch(val_loader)
+                loss = self._step(xis, xjs)
 
-            if self.config.general.log_to_wandb:
-                wandb.log({**train_metrics, **val_metrics})
+                loss.backward()
 
-            logging.info({**train_metrics, **val_metrics})
+                self.optimizer.step()
+                n_iter += 1
 
-            val_loss = val_metrics['val/loss']
+            valid_loss = self._validate(val_loader)
+            if valid_loss < best_valid_loss:
+                best_valid_loss = valid_loss
+                model_file_path = 'model_{}_old.pth'.format(self.dataset)
+                torch.save(self.model.state_dict(), model_file_path)
 
-            state_dict = {
-                'ssl_model': self.ssl_model.state_dict(),
-                'homography_estimator': self.homography_estimator.state_dict(),
-                'optimiser': self.optimiser.state_dict(),
-                'epoch': epoch + 1,
-            }
+            if epoch_counter >= self.warmup_steps:
+                self.scheduler.step()
 
-            torch.save(
-                state_dict,
-                os.path.join(self.config.general.output_dir, LATEST_MODEL_FILE_NAME)
-            )
+            valid_n_iter += 1
 
-            if epoch % self.config.general.checkpoint_freq == 0 or (epoch + 1) == self.config.optim.epochs:
+            if epoch_counter % 10 == 0:
                 torch.save(
-                    state_dict,
-                    os.path.join(self.config.general.output_dir, f'simclr-epoch-{epoch}.pth')
+                    self.model.state_dict(),
+                    os.path.join(self.run_folder, str(epoch_counter) + '_' + self.model_name)
                 )
 
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
+
+class AffineTrainer:
+    def __init__(self, model, param_head, optimizer, scheduler, batch_size, epochs, device, dataset, run_folder, warmup_steps):
+        self.model = model
+        self.param_head = param_head
+        self.optimizer = optimizer
+        self.scheduler = scheduler
+        self.batch_size = batch_size
+        self.epochs = epochs
+        self.device = device
+        self.dataset = dataset
+        self.run_folder = run_folder
+        self.warmup_steps = warmup_steps
+
+        self.nt_xent_criterion = NTXentLoss(
+            device, batch_size, 0.5, True
+        )
+
+        self.mse_criterion = nn.MSELoss()
+
+        self.model_name = 'model_{}.pth'.format(self.dataset)
+
+    def _step(self, xis, xjs, xits, gt_params):
+        ris, zis = self.model(xis)  # [N,C]
+
+        # get the representations and the projections
+        rjs, zjs = self.model(xjs)  # [N,C]
+
+        # normalize projection feature vectors
+        zis = F.normalize(zis, dim=1)
+        zjs = F.normalize(zjs, dim=1)
+
+        loss = self.nt_xent_criterion(zis, zjs)
+
+        rits, _ = self.model(xits)
+        transition_vector = ris - rits
+        params_dist = self.param_head(transition_vector)
+        param_loss = self.mse_criterion(params_dist, gt_params)
+
+        return loss + param_loss
+
+    def _validate(self, val_loader):
+        with torch.no_grad():
+            self.model.eval()
+            self.param_head.eval()
+
+            valid_loss = 0.0
+            counter = 0
+            for xis, xjs, xits, gt_params in val_loader:
+                xis = xis.to(self.device)
+                xjs = xjs.to(self.device)
+                xits = xits.to(self.device)
+                gt_params = gt_params.to(self.device)
+
+                loss = self._step(xis, xjs, xits, gt_params)
+                valid_loss += loss.item()
+                counter += 1
+            valid_loss /= counter
+        self.model.train()
+        self.param_head.train()
+
+        return valid_loss
+
+    def train(self, train_loader, val_loader):
+        n_iter = 0
+        valid_n_iter = 0
+        best_valid_loss = np.inf
+
+        for epoch_counter in range(self.epochs):
+            logging.info('%s/%s', epoch_counter + 1, self.epochs)
+            for xis, xjs, xits, gt_params in train_loader:
+                self.optimizer.zero_grad()
+
+                xis = xis.to(self.device)
+                xjs = xjs.to(self.device)
+                xits = xits.to(self.device)
+                gt_params = gt_params.to(self.device)
+
+                loss = self._step(xis, xjs, xits, gt_params)
+
+                loss.backward()
+
+                self.optimizer.step()
+                n_iter += 1
+
+            valid_loss = self._validate(val_loader)
+            if valid_loss < best_valid_loss:
+                best_valid_loss = valid_loss
                 torch.save(
-                    state_dict,
-                    os.path.join(self.config.general.output_dir, 'best.pth')
+                    self.model.state_dict(),
+                    os.path.join(self.run_folder, self.model_name)
                 )
 
-        return best_val_loss
+            if epoch_counter >= self.warmup_steps:
+                self.scheduler.step()
+
+            valid_n_iter += 1
+
+            if epoch_counter % 10 == 0:
+                torch.save(
+                    self.model.state_dict(),
+                    os.path.join(self.run_folder, str(epoch_counter) + '_' + self.model_name)
+                )
