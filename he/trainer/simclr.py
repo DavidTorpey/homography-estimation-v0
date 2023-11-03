@@ -6,25 +6,26 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from .nt_xent import NTXentLoss
+from he.configuration import Config
+from he.nt_xent import NTXentLoss
 
 
-class Trainer:
-    def __init__(self, model, optimizer, scheduler, batch_size, epochs, device, dataset, run_folder, warmup_steps):
+class SimCLRTrainer:
+    def __init__(self, model, optimizer, scheduler, config: Config):
         self.model = model
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.batch_size = batch_size
-        self.epochs = epochs
-        self.device = device
-        self.dataset = dataset
-        self.run_folder = run_folder
-        self.warmup_steps = warmup_steps
+        self.batch_size = config.trainer.batch_size
+        self.epochs = config.trainer.epochs
+        self.device = config.trainer.device
+        self.dataset = config.data.dataset
+        self.run_folder = config.general.output_dir
+        self.warmup_steps = config.trainer.warmup_epochs
 
         self.model_name = 'model_{}.pth'.format(self.dataset)
 
         self.nt_xent_criterion = NTXentLoss(
-            device, batch_size, 0.5, True
+            self.device, self.batch_size, 0.5, True
         )
 
     def _step(self, xis, xjs):
@@ -97,21 +98,21 @@ class Trainer:
                 )
 
 
-class AffineTrainer:
-    def __init__(self, model, param_head, optimizer, scheduler, batch_size, epochs, device, dataset, run_folder, warmup_steps):
+class SimCLRAffineTrainer:
+    def __init__(self, model, param_head, optimizer, scheduler, config: Config):
         self.model = model
         self.param_head = param_head
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.batch_size = batch_size
-        self.epochs = epochs
-        self.device = device
-        self.dataset = dataset
-        self.run_folder = run_folder
-        self.warmup_steps = warmup_steps
+        self.batch_size = config.trainer.batch_size
+        self.epochs = config.trainer.epochs
+        self.device = config.trainer.device
+        self.dataset = config.data.dataset
+        self.run_folder = config.general.output_dir
+        self.warmup_steps = config.trainer.warmup_epochs
 
         self.nt_xent_criterion = NTXentLoss(
-            device, batch_size, 0.5, True
+            self.device, self.batch_size, 0.5, True
         )
 
         self.mse_criterion = nn.MSELoss()

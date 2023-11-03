@@ -5,9 +5,9 @@ from .projection_head import MLPHead
 from ..configuration import Config
 
 
-class ResNetSimCLR(torch.nn.Module):
+class Encoder(torch.nn.Module):
     def __init__(self, config: Config):
-        super(ResNetSimCLR, self).__init__()
+        super(Encoder, self).__init__()
         name = config.network.name
         if name == 'resnet18':
             resnet = models.resnet18(pretrained=False)
@@ -17,6 +17,7 @@ class ResNetSimCLR(torch.nn.Module):
             resnet = models.wide_resnet50_2(pretrained=False)
 
         self.encoder = torch.nn.Sequential(*list(resnet.children())[:-1])
+
         self.projection = MLPHead(
             in_channels=resnet.fc.in_features,
             hidden_size=config.network.mlp_head.hidden_size,

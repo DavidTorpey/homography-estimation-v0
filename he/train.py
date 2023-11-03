@@ -11,6 +11,7 @@ from torchvision import datasets
 
 from he.configuration import Config
 from he.data.data import get_data
+from he.model.model import get_model
 from he.model.projection_head import MLPHead
 from .data.augmentations import get_simclr_data_transforms
 from .data.multiview_injector import MultiViewDataInjector
@@ -40,14 +41,12 @@ def main():
 
     dataset = config.data.dataset
 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    logging.info(f"Training with: {device}")
+    logging.info(f"Training with device: {config.trainer.device}")
     logging.info('Using dataset:', dataset)
 
     train_loader, valid_loader = get_data(config)
 
-    logging.info('Initialising SimCLR model')
-    model = ResNetSimCLR(config).to(device)
+    model = get_model(config).to(config.trainer.device)
 
     param_head = None
     if config.data.dataset_type == 'affine':
@@ -56,7 +55,7 @@ def main():
             in_channels=512 if config.network.name == 'resnet18' else 2048,
             hidden_size=config.network.pred_head.hidden_size,
             proj_size=config.network.pred_head.proj_size
-        ).to(device)
+        ).to(config.trainer.device)
 
     if config.data.dataset_type == 'default':
         optimizer = torch.optim.Adam(
@@ -81,20 +80,9 @@ def main():
     )
 
     warmup_steps = config.trainer.warmup_epochs
+    device = config.trainer.device
 
-    logging.info('Initialising trainer for dataset_type=%s', config.data.dataset_type)
-    if config.data.dataset_type == 'default':
-        trainer = Trainer(
-            model, optimizer, scheduler, batch_size, epochs, device, dataset,
-            run_folder, warmup_steps
-        )
-    elif config.data.dataset_type == 'affine':
-        trainer = AffineTrainer(
-            model, param_head, optimizer, scheduler, batch_size,
-            epochs, device, dataset, run_folder, warmup_steps
-        )
-    else:
-        raise Exception(f'Dataset type not supported: {config.data.dataset_type}')
+    trainer = get_trainer()
 
     trainer.train(train_loader, valid_loader)
 

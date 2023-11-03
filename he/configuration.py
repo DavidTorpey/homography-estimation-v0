@@ -13,6 +13,7 @@ class MLP:
 
 @dataclass
 class Network:
+    algo: str = 'simclr'
     name: str = 'resnet18'
     mlp_head: MLP = field(default_factory=lambda: MLP())
     pred_head: MLP = field(default_factory=lambda: MLP())
@@ -33,6 +34,7 @@ class Trainer:
     epochs: int = 100
     warmup_epochs: int = 10
     num_workers: int = 4
+    device: str = 'cpu'
 
 
 @dataclass
