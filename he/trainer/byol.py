@@ -8,7 +8,6 @@ from torch import nn
 
 from he.configuration import Config
 from he.model.byol import BYOL
-from he.nt_xent import NTXentLoss
 
 
 class BYOLTrainer:
@@ -22,6 +21,9 @@ class BYOLTrainer:
         self.dataset = config.data.dataset
         self.run_folder = config.general.output_dir
         self.warmup_steps = config.trainer.warmup_epochs
+
+        self.m_base = 0.996
+        self.m = 0.996
 
         self.model_name = 'model_{}.pth'.format(self.dataset)
 
@@ -62,7 +64,13 @@ class BYOLTrainer:
 
         return valid_loss
 
+    @torch.no_grad()
+    def _update_target_network_parameters(self):
+        for param_q, param_k in zip(self.model.online_network.parameters(), self.model.target_network.parameters()):
+            param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
+
     def train(self, train_loader, val_loader):
+        K = len(train_loader) * self.epochs
         n_iter = 0
         valid_n_iter = 0
         best_valid_loss = np.inf
@@ -81,6 +89,10 @@ class BYOLTrainer:
 
                 self.optimizer.step()
                 n_iter += 1
+
+                self._update_target_network_parameters()
+
+                self.m = 1 - (1 - self.m_base) * (np.cos(np.pi * n_iter / K) + 1) / 2
 
             valid_loss = self._validate(val_loader)
             if valid_loss < best_valid_loss:
@@ -101,7 +113,7 @@ class BYOLTrainer:
 
 
 class BYOLAffineTrainer:
-    def __init__(self, model, param_head, optimizer, scheduler, config: Config):
+    def __init__(self, model: BYOL, param_head, optimizer, scheduler, config: Config):
         self.model = model
         self.param_head = param_head
         self.optimizer = optimizer
@@ -113,32 +125,39 @@ class BYOLAffineTrainer:
         self.run_folder = config.general.output_dir
         self.warmup_steps = config.trainer.warmup_epochs
 
-        self.nt_xent_criterion = NTXentLoss(
-            self.device, self.batch_size, 0.5, True
-        )
+        self.m_base = 0.996
+        self.m = 0.996
 
         self.mse_criterion = nn.MSELoss()
 
         self.model_name = 'model_{}.pth'.format(self.dataset)
 
+    @staticmethod
+    def regression_loss(x, y):
+        x = F.normalize(x, dim=1)
+        y = F.normalize(y, dim=1)
+        return -2 * (x * y).sum(dim=-1)
+
     def _step(self, xis, xjs, xits, gt_params):
-        ris, zis = self.model(xis)  # [N,C]
+        ris1, zis1 = self.model.online_network(xis)
+        predictions_from_view_1 = self.model.predictor(zis1)
 
-        # get the representations and the projections
-        rjs, zjs = self.model(xjs)  # [N,C]
+        ris2, zis2 = self.model.online_network(xjs)
+        predictions_from_view_2 = self.model.predictor(zis2)
 
-        # normalize projection feature vectors
-        zis = F.normalize(zis, dim=1)
-        zjs = F.normalize(zjs, dim=1)
+        with torch.no_grad():
+            _, targets_to_view_2 = self.model.target_network(xis)
+            _, targets_to_view_1 = self.model.target_network(xjs)
 
-        loss = self.nt_xent_criterion(zis, zjs)
+        loss = self.regression_loss(predictions_from_view_1, targets_to_view_1)
+        loss += self.regression_loss(predictions_from_view_2, targets_to_view_2)
 
-        rits, _ = self.model(xits)
-        transition_vector = ris - rits
+        rits, _ = self.model.online_network(xits)
+        transition_vector = ris1 - rits
         params_dist = self.param_head(transition_vector)
         param_loss = self.mse_criterion(params_dist, gt_params)
 
-        return loss + param_loss
+        return loss.mean() + param_loss
 
     def _validate(self, val_loader):
         with torch.no_grad():
@@ -162,7 +181,14 @@ class BYOLAffineTrainer:
 
         return valid_loss
 
+    @torch.no_grad()
+    def _update_target_network_parameters(self):
+        for param_q, param_k in zip(self.model.online_network.parameters(), self.model.target_network.parameters()):
+            param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
+
     def train(self, train_loader, val_loader):
+        K = len(train_loader) * self.epochs
+
         n_iter = 0
         valid_n_iter = 0
         best_valid_loss = np.inf
@@ -183,6 +209,10 @@ class BYOLAffineTrainer:
 
                 self.optimizer.step()
                 n_iter += 1
+
+                self._update_target_network_parameters()
+
+                self.m = 1 - (1 - self.m_base) * (np.cos(np.pi * n_iter / K) + 1) / 2
 
             valid_loss = self._validate(val_loader)
             if valid_loss < best_valid_loss:

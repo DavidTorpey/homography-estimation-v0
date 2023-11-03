@@ -1,23 +1,17 @@
 import logging
 import os
-import sys
 from argparse import ArgumentParser
 from pathlib import Path
 
 import dacite
 import torch
 import yaml
-from torchvision import datasets
 
 from he.configuration import Config
 from he.data.data import get_data
 from he.model.model import get_model
 from he.model.projection_head import MLPHead
-from .data.augmentations import get_simclr_data_transforms
-from .data.multiview_injector import MultiViewDataInjector
-from .model.backbone import ResNetSimCLR
-from .data.utils import get_train_validation_data_loaders
-from .trainer import Trainer, AffineTrainer
+from he.trainer.trainer import get_trainer
 
 
 def main():
@@ -72,17 +66,11 @@ def main():
     else:
         raise Exception(f'Dataset type not supported: {config.data.dataset_type}')
 
-    batch_size = config.trainer.batch_size
-    epochs = config.trainer.epochs
-
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=len(train_loader), eta_min=0, last_epoch=-1
     )
 
-    warmup_steps = config.trainer.warmup_epochs
-    device = config.trainer.device
-
-    trainer = get_trainer()
+    trainer = get_trainer(config, model, param_head, optimizer, scheduler)
 
     trainer.train(train_loader, valid_loader)
 
