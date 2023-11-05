@@ -44,7 +44,7 @@ class BYOLTrainer:
         loss = self.regression_loss(predictions_from_view_1, targets_to_view_1)
         loss += self.regression_loss(predictions_from_view_2, targets_to_view_2)
 
-        return loss
+        return loss.mean()
 
     def _validate(self, val_loader):
         with torch.no_grad():
