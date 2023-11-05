@@ -17,10 +17,14 @@ from he.trainer.trainer import get_trainer
 def main():
     parser = ArgumentParser()
     parser.add_argument('--config_path', type=str, required=True)
+    parser.add_argument('--run_num', type=str, required=True)
     args = parser.parse_args()
 
     config_dict = yaml.load(open(args.config_path, "r"), Loader=yaml.FullLoader)
     config: Config = dacite.from_dict(Config, config_dict)
+
+    if args.run_num:
+        config.general.output_dir = os.path.join(config.general.output_dir, args.run_num)
 
     run_folder = config.general.output_dir
     Path(run_folder).mkdir(parents=True, exist_ok=True)
