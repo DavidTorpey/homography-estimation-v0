@@ -12,4 +12,4 @@ cd /home-mscluster/dtorpey/code/homography-estimation-v0
 
 python -m he.linear_eval.run \
 --config_path /home-mscluster/dtorpey/code/homography-estimation-v0/config/msl/resnet50/simclr-affine/cifar100/config.yaml \
---model_path /home-mscluster/dtorpey/code/homography-estimation-v0/results/resnet50/simclr-affine/stl10/80_model_stl10.pth
+--model_path /home-mscluster/dtorpey/code/homography-estimation-v0/results/resnet50/simclr-affine/cifar100/80_model_cifar100.pth
