@@ -10,4 +10,6 @@ cd /home-mscluster/dtorpey/code/homography-estimation-v0
 
 . /home-mscluster/dtorpey/code/object-centricity-ssl/env.sh
 
-python -m he.linear_eval.run --config_path /home-mscluster/dtorpey/code/homography-estimation-v0/config/msl/resnet50/simclr-affine/cifar100/config.yaml --model_path /home-mscluster/dtorpey/code/homography-estimation-v0/results/resnet50/simclr-affine/stl10/80_model_stl10.pth
+python -m he.linear_eval.run \
+--config_path /home-mscluster/dtorpey/code/homography-estimation-v0/config/msl/resnet50/simclr-affine/cifar100/config.yaml \
+--model_path /home-mscluster/dtorpey/code/homography-estimation-v0/results/resnet50/simclr-affine/stl10/80_model_stl10.pth

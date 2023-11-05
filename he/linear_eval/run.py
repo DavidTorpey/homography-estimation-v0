@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 
 from ..configuration import Config
-from ..model.backbone import ResNetSimCLR
+from ..model.backbone import Encoder
 from .model import LogisticRegression
 from .data import get_datasets
 from .utils import get_numpy_data
@@ -42,7 +42,7 @@ val_loader = DataLoader(val_dataset, batch_size=batch_size,
 test_loader = DataLoader(test_dataset, batch_size=batch_size,
                          num_workers=0, drop_last=False, shuffle=True)
 
-encoder = ResNetSimCLR(config)
+encoder = Encoder(config)
 output_feature_dim = encoder.projection.net[0].in_features
 model_file_path = args.model_path
 load_params = torch.load(
@@ -143,5 +143,7 @@ for x, y in test_loader:
 acc = correct / total
 print(f"Testing accuracy: {100 * np.mean(acc)}")
 
-with open(os.path.join(run_folder, 'result.txt'), 'w') as f:
+model_id = os.path.basename(args.model_path).split('.')[0]
+
+with open(os.path.join(run_folder, f'{model_id}_result.txt'), 'w') as f:
     f.write('{}\n'.format(acc))
