@@ -34,12 +34,12 @@ class BYOLTrainer:
         return -2 * (x * y).sum(dim=-1)
 
     def _step(self, batch_view_1, batch_view_2):
-        predictions_from_view_1 = self.model.predictor(self.model.online_network(batch_view_1))
-        predictions_from_view_2 = self.model.predictor(self.model.online_network(batch_view_2))
+        predictions_from_view_1 = self.model.predictor(self.model.online_network(batch_view_1)[1])
+        predictions_from_view_2 = self.model.predictor(self.model.online_network(batch_view_2)[1])
 
         with torch.no_grad():
-            targets_to_view_2 = self.model.target_network(batch_view_1)
-            targets_to_view_1 = self.model.target_network(batch_view_2)
+            targets_to_view_2 = self.model.target_network(batch_view_1)[1]
+            targets_to_view_1 = self.model.target_network(batch_view_2)[1]
 
         loss = self.regression_loss(predictions_from_view_1, targets_to_view_1)
         loss += self.regression_loss(predictions_from_view_2, targets_to_view_2)
