@@ -17,7 +17,7 @@ from he.trainer.trainer import get_trainer
 def main():
     parser = ArgumentParser()
     parser.add_argument('--config_path', type=str, required=True)
-    parser.add_argument('--run_num', type=str, required=True)
+    parser.add_argument('--run_num', type=str, default=None)
     args = parser.parse_args()
 
     config_dict = yaml.load(open(args.config_path, "r"), Loader=yaml.FullLoader)
