@@ -16,7 +16,7 @@ class BYOL(nn.Module):
         self.initializes_target_network()
 
         self.predictor = MLPHead(
-            in_channels=512 if config.network.name == 'resnet18' else 2048,
+            in_channels=config.network.mlp_head.proj_size,
             hidden_size=config.network.mlp_head.hidden_size,
             proj_size=config.network.mlp_head.proj_size
         )
