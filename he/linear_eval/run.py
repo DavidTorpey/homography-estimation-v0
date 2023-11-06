@@ -62,7 +62,7 @@ elif config.network.algo == 'byol':
         map_location=torch.device(device)
     )
     byol.load_state_dict(load_params)
-    encoder = byol.online_network
+    encoder = byol.online_network.encoder
     output_feature_dim = encoder.projection.net[0].in_features
     encoder = encoder.to(device)
 else:
