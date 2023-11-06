@@ -63,7 +63,7 @@ elif config.network.algo == 'byol':
     )
     byol.load_state_dict(load_params)
     encoder = byol.online_network.encoder
-    output_feature_dim = encoder.projection.net[0].in_features
+    output_feature_dim = 2048 if config.network.name == 'resnet50' else 512
     encoder = encoder.to(device)
 else:
     raise Exception(f'Invalid model: {config.network.algo}')
