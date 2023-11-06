@@ -12,6 +12,7 @@ from ..model.backbone import Encoder
 from .model import LogisticRegression
 from .data import get_datasets
 from .utils import get_numpy_data
+from ..model.byol import BYOL
 
 batch_size = 512
 device = 'cuda'
@@ -42,16 +43,30 @@ val_loader = DataLoader(val_dataset, batch_size=batch_size,
 test_loader = DataLoader(test_dataset, batch_size=batch_size,
                          num_workers=0, drop_last=False, shuffle=True)
 
-encoder = Encoder(config)
-output_feature_dim = encoder.projection.net[0].in_features
-model_file_path = args.model_path
-load_params = torch.load(
-    model_file_path,
-    map_location=torch.device(device)
-)
-encoder.load_state_dict(load_params)
-encoder = encoder.encoder
-encoder = encoder.to(device)
+if config.network.algo == 'simclr':
+    encoder = Encoder(config)
+    output_feature_dim = encoder.projection.net[0].in_features
+    model_file_path = args.model_path
+    load_params = torch.load(
+        model_file_path,
+        map_location=torch.device(device)
+    )
+    encoder.load_state_dict(load_params)
+    encoder = encoder.encoder
+    encoder = encoder.to(device)
+elif config.network.algo == 'byol':
+    byol = BYOL(config)
+    model_file_path = args.model_path
+    load_params = torch.load(
+        model_file_path,
+        map_location=torch.device(device)
+    )
+    byol.load_state_dict(load_params)
+    encoder = byol.online_network
+    output_feature_dim = encoder.projection.net[0].in_features
+    encoder = encoder.to(device)
+else:
+    raise Exception(f'Invalid model: {config.network.algo}')
 
 x_train, y_train, x_val, y_val, x_test, y_test = \
     get_numpy_data(
