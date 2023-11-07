@@ -136,7 +136,7 @@ class BYOLAffineTrainer:
     def regression_loss(x, y):
         x = F.normalize(x, dim=1)
         y = F.normalize(y, dim=1)
-        return -2 * (x * y).sum(dim=-1)
+        return 2 - 2 * (x * y).sum(dim=-1)
 
     def _step(self, xis, xjs, xits, gt_params):
         ris1, zis1 = self.model.online_network(xis)
