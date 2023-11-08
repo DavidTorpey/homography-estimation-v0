@@ -10,7 +10,7 @@ data:
   s: 1
   image_size: 32
   dataset: stl10
-  num_classes: 100
+  num_classes: 10
   dataset_type: default
 trainer:
   batch_size: 256
