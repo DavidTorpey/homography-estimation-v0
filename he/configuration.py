@@ -22,6 +22,7 @@ class Network:
 @dataclass
 class Data:
     dataset: str
+    root: str
     num_classes: int
     dataset_type: str
     s: float = 1.0

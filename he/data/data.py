@@ -1,11 +1,14 @@
 import logging
+import os
+import random
+from pathlib import Path
 
 import numpy as np
 from torchvision import datasets
 
 from he.configuration import Config
 from he.data.augmentations import get_simclr_data_transforms
-from he.data.dataset import CustomDataset
+from he.data.dataset import CustomDataset, DefaultDataset
 from he.data.multiview_injector import MultiViewDataInjector
 from he.data.utils import get_train_validation_data_loaders
 
@@ -35,6 +38,14 @@ def get_default(config: Config):
         train_dataset = datasets.CIFAR100(
             './data', train=True, download=True,
             transform=MultiViewDataInjector([data_transform, data_transform])
+        )
+    elif dataset == 'tiny_imagenet':
+        root = config.data.root
+        image_paths = list(Path(os.path.join(root, 'tiny-imagenet-200', 'train')).rglob('*.JPEG'))
+        random.shuffle(image_paths)
+        train_dataset = DefaultDataset(
+            image_paths,
+            transform=data_transform
         )
     else:
         raise Exception(f'Dataset not supported: {dataset}')

@@ -66,3 +66,16 @@ class CustomDataset(Dataset):
         x1t = to_tensor(x1t)
 
         return x1, x2, x1t, param_vec
+
+
+class DefaultDataset(Dataset):
+    def __init__(self, paths, transform):
+        self.paths = paths
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.paths)
+
+    def __getitem__(self, item):
+        image = Image.open(self.paths[item]).convert('RGB')
+        return self.transform(image), self.transform(image)
