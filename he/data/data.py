@@ -8,7 +8,7 @@ from torchvision import datasets
 
 from he.configuration import Config
 from he.data.augmentations import get_simclr_data_transforms
-from he.data.dataset import CustomDataset, DefaultDataset
+from he.data.dataset import CustomDataset, DefaultDataset, AffineDataset
 from he.data.multiview_injector import MultiViewDataInjector
 from he.data.utils import get_train_validation_data_loaders
 
@@ -61,20 +61,30 @@ def get_affine(config: Config):
         train_dataset = datasets.STL10('./data', split='train+unlabeled', download=True)
         trainset = train_dataset.data
         trainset = np.swapaxes(np.swapaxes(trainset, 1, 2), 2, 3)
+        train_dataset = CustomDataset(trainset, config)
     elif dataset == 'cifar10':
         train_dataset = datasets.CIFAR10('./data', train=True, download=True)
         trainset = train_dataset.data
+        train_dataset = CustomDataset(trainset, config)
     elif dataset == 'svhn':
         train_dataset = datasets.SVHN('./data', split='train', download=True)
         trainset = train_dataset.data
         trainset = np.swapaxes(np.swapaxes(trainset, 1, 2), 2, 3)
+        train_dataset = CustomDataset(trainset, config)
     elif dataset == 'cifar100':
         train_dataset = datasets.CIFAR100('./data', train=True, download=True)
         trainset = train_dataset.data
+        train_dataset = CustomDataset(trainset, config)
+    elif dataset == 'tiny_imagenet':
+        root = config.data.root
+        image_paths = list(Path(os.path.join(root, 'tiny-imagenet-200', 'train')).rglob('*.JPEG'))
+        random.shuffle(image_paths)
+        train_dataset = AffineDataset(
+            image_paths,
+            config
+        )
     else:
         raise Exception(f'Dataset not supported: {dataset}')
-
-    train_dataset = CustomDataset(trainset, config)
 
     return train_dataset
 
