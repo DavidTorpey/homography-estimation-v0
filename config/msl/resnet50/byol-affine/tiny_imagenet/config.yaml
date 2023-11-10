@@ -6,6 +6,9 @@ network:
   mlp_head:
     hidden_size: 512
     proj_size: 128
+  pred_head:
+    hidden_size: 512
+    proj_size: 6
 data:
   s: 1
   image_size: 64
