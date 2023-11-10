@@ -78,4 +78,5 @@ class DefaultDataset(Dataset):
 
     def __getitem__(self, item):
         image = Image.open(self.paths[item]).convert('RGB')
-        return self.transform(image), self.transform(image)
+        dummy = 1
+        return [self.transform(image), self.transform(image)], dummy
