@@ -93,4 +93,4 @@ def get_data(config: Config):
         config.trainer.num_workers
     )
 
-    return train_loader, valid_loader
+    return [train_loader, valid_loader], None
