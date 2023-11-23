@@ -12,6 +12,7 @@ def get_datasets(dataset, config, image_size, val_p=0.1):
     ])
 
     test_transforms = torchvision.transforms.Compose([
+        torchvision.transforms.RandomCrop((image_size, image_size)),
         transforms.ToTensor()
     ])
 
