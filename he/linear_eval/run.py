@@ -36,7 +36,7 @@ print('Using dataset:', dataset)
 
 num_classes = config.data.num_classes
 
-train_dataset, val_dataset, test_dataset = get_datasets(dataset, config.data.image_size)
+train_dataset, val_dataset, test_dataset = get_datasets(dataset, config, config.data.image_size)
 
 print("Input shape:", train_dataset[0][0].shape)
 
