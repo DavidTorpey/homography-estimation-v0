@@ -14,7 +14,6 @@ from .data import get_datasets
 from .utils import get_numpy_data
 from ..model.byol import BYOL
 
-batch_size = 512
 device = 'cuda'
 
 parser = ArgumentParser()
@@ -28,6 +27,8 @@ config: Config = dacite.from_dict(Config, config_dict)
 
 if args.run_num:
     config.general.output_dir = os.path.join(config.general.output_dir, args.run_num)
+
+batch_size = config.trainer.batch_size
 
 run_folder = config.general.output_dir
 
