@@ -11,7 +11,7 @@ data:
   image_size: 32
   dataset: food101
   root: /home-mscluster/dtorpey/dataset/food/food-101
-  num_classes: 100
+  num_classes: 101
   dataset_type: default
 trainer:
   batch_size: 256
