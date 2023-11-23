@@ -40,6 +40,7 @@ def get_food101(
     train_images_path = os.path.join(config.data.root, 'meta/train.txt')
     with open(train_images_path) as file:
         train_image_paths = file.read().splitlines()
+    train_image_paths = add_ext(train_image_paths)
 
     test_images_path = os.path.join(config.data.root, 'meta/test.txt')
     with open(test_images_path) as file:
