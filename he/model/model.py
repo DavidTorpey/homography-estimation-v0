@@ -14,6 +14,8 @@ def get_model(config: Config):
         model = Encoder(config)
     elif model_name == 'byol':
         model = BYOL(config)
+    elif model_name == 'barlow_twins':
+        model = Encoder(config)
     else:
         raise Exception(f'Model not supported: {model_name}')
 
