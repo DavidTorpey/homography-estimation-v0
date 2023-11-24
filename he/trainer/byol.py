@@ -31,7 +31,7 @@ class BYOLTrainer:
     def regression_loss(x, y):
         x = F.normalize(x, dim=1)
         y = F.normalize(y, dim=1)
-        return -2 * (x * y).sum(dim=-1)
+        return 2 - 2 * (x * y).sum(dim=-1)
 
     def _step(self, batch_view_1, batch_view_2):
         predictions_from_view_1 = self.model.predictor(self.model.online_network(batch_view_1)[1])
