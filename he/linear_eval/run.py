@@ -70,6 +70,17 @@ elif config.network.algo == 'byol':
     encoder = byol.online_network.encoder
     output_feature_dim = 2048 if config.network.name == 'resnet50' else 512
     encoder = encoder.to(device)
+elif config.network.algo == 'barlow_twins':
+    encoder = Encoder(config)
+    output_feature_dim = encoder.projection.net[0].in_features
+    model_file_path = args.model_path
+    load_params = torch.load(
+        model_file_path,
+        map_location=torch.device(device)
+    )
+    encoder.load_state_dict(load_params)
+    encoder = encoder.encoder
+    encoder = encoder.to(device)
 else:
     raise Exception(f'Invalid model: {config.network.algo}')
 
