@@ -1,6 +1,8 @@
 import logging
 import os
+from dataclasses import asdict
 
+import wandb
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -22,10 +24,18 @@ class BarlowTwinsTrainer:
         self.dataset = config.data.dataset
         self.run_folder = config.general.output_dir
         self.warmup_steps = config.trainer.warmup_epochs
+        self.config = config
 
         self.model_name = 'model_{}.pth'.format(self.dataset)
 
         self.criterion = BarlowTwinsLoss()
+
+        if config.general.log_to_wandb:
+            wandb.init(
+                project='phd', config=asdict(config),
+                name=f'BarlowTwins : {config.data.dataset}',
+                tags=[f'run_id: {config.general.run_id}'],
+            )
 
     def _step(self, xis, xjs):
         _, zis = self.model(xis)  # [N,C]
@@ -66,6 +76,8 @@ class BarlowTwinsTrainer:
 
         for epoch_counter in range(self.epochs):
             logging.info('%s/%s', epoch_counter + 1, self.epochs)
+
+            train_loss = 0.0
             for (xis, xjs), _ in train_loader:
                 self.optimizer.zero_grad()
 
@@ -76,10 +88,17 @@ class BarlowTwinsTrainer:
 
                 loss.backward()
 
+                train_loss += float(loss.item(0))
+
                 self.optimizer.step()
                 n_iter += 1
+            train_loss /= len(train_loader)
 
             valid_loss = self._validate(val_loader)
+
+            if self.config.general.log_to_wandb:
+                wandb.log({'train/loss': train_loss, 'val/loss': valid_loss})
+
             if valid_loss < best_valid_loss:
                 best_valid_loss = valid_loss
                 model_file_path = 'model_{}_old.pth'.format(self.dataset)
@@ -109,12 +128,20 @@ class BarlowTwinsAffineTrainer:
         self.dataset = config.data.dataset
         self.run_folder = config.general.output_dir
         self.warmup_steps = config.trainer.warmup_epochs
+        self.config = config
 
         self.criterion = BarlowTwinsLoss()
 
         self.mse_criterion = nn.MSELoss()
 
         self.model_name = 'model_{}.pth'.format(self.dataset)
+
+        if config.general.log_to_wandb:
+            wandb.init(
+                project='phd', config=asdict(config),
+                name=f'BarlowTwins Affine : {config.data.dataset}',
+                tags=[f'run_id: {config.general.run_id}'],
+            )
 
     def _step(self, xis, xjs, xits, gt_params):
         ris, zis = self.model(xis)  # [N,C]
@@ -164,6 +191,8 @@ class BarlowTwinsAffineTrainer:
 
         for epoch_counter in range(self.epochs):
             logging.info('%s/%s', epoch_counter + 1, self.epochs)
+
+            train_loss = 0.0
             for xis, xjs, xits, gt_params in train_loader:
                 self.optimizer.zero_grad()
 
@@ -176,10 +205,17 @@ class BarlowTwinsAffineTrainer:
 
                 loss.backward()
 
+                train_loss += float(loss.item())
+
                 self.optimizer.step()
                 n_iter += 1
+            train_loss /= len(train_loader)
 
             valid_loss = self._validate(val_loader)
+
+            if self.config.general.log_to_wandb:
+                wandb.log({'train/loss': train_loss, 'val/loss': valid_loss})
+
             if valid_loss < best_valid_loss:
                 best_valid_loss = valid_loss
                 torch.save(

@@ -1,9 +1,13 @@
 from dataclasses import dataclass, field
+from uuid import uuid4
 
 
 @dataclass
 class General:
     output_dir: str
+    log_to_wandb: bool = False
+    run_id: str = str(uuid4())
+
 
 @dataclass
 class MLP:
