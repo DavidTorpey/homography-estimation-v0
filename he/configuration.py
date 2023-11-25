@@ -5,7 +5,7 @@ from uuid import uuid4
 @dataclass
 class General:
     output_dir: str
-    log_to_wandb: bool = False
+    log_to_wandb: bool = True
     run_id: str = str(uuid4())
 
 
