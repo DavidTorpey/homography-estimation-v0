@@ -88,7 +88,7 @@ class BarlowTwinsTrainer:
 
                 loss.backward()
 
-                train_loss += float(loss.item(0))
+                train_loss += float(loss.item())
 
                 self.optimizer.step()
                 n_iter += 1
