@@ -1,6 +1,8 @@
+import json
 import logging
 import os
 from argparse import ArgumentParser
+from dataclasses import asdict
 from pathlib import Path
 
 import dacite
@@ -36,6 +38,8 @@ def main():
             logging.StreamHandler()
         ]
     )
+    with open(os.path.join(config.general.output_dir, 'config.json'), 'w') as handle:
+        json.dump(asdict(config), handle, indent=2)
 
     dataset = config.data.dataset
 

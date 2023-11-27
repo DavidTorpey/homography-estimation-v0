@@ -32,6 +32,11 @@ class Data:
     s: float = 1.0
     image_size: int = 32
 
+    rotation: bool = True
+    translation: bool = True
+    scale: bool = True
+    shear: bool = True
+
 
 @dataclass
 class Trainer:
