@@ -1,5 +1,5 @@
 general:
-  output_dir: ./results/resnet50/simclr-affine/tiny_imagenet
+  output_dir: ./results/resnet50/simclr-affine/tiny_imagenet/affine-components-ablations/scale-shear-translation
 network:
   algo: simclr
   name: resnet50

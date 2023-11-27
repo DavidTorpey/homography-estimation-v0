@@ -1,5 +1,5 @@
 general:
-  output_dir: ./results/resnet50/byol-affine/tiny_imagenet
+  output_dir: ./results/resnet50/byol-affine/tiny_imagenet/affine-components-ablations/scale-shear
 network:
   algo: byol
   name: resnet50
