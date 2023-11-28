@@ -14,7 +14,7 @@ data:
   s: 1
   image_size: 64
   dataset: tiny_imagenet
-  root: /mnt/data/home/david/data/tiny-imagenet/tiny-imagenet-200
+  root: /mnt/data/home/david/data/tiny-imagenet
   num_classes: 100
   dataset_type: affine
 trainer:
