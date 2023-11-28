@@ -44,7 +44,7 @@ def main():
     dataset = config.data.dataset
 
     logging.info(f"Training with device: {config.trainer.device}")
-    logging.info('Using dataset:', dataset)
+    logging.info('Using dataset: %s', dataset)
 
     train_loader, valid_loader = get_data(config)
 
