@@ -110,6 +110,7 @@ class SimCLRAffineTrainer:
         self.dataset = config.data.dataset
         self.run_folder = config.general.output_dir
         self.warmup_steps = config.trainer.warmup_epochs
+        self.config = config
 
         self.nt_xent_criterion = NTXentLoss(
             self.device, self.batch_size, 0.5, True
@@ -132,7 +133,14 @@ class SimCLRAffineTrainer:
         loss = self.nt_xent_criterion(zis, zjs)
 
         rits, _ = self.model(xits)
-        transition_vector = ris - rits
+
+        if self.config.network.aggregation_strategy == 'diff':
+            transition_vector = ris - rits
+        elif self.config.network.aggregation_strategy == 'concat':
+            transition_vector = torch.cat([ris, rits], dim=-1)
+        else:
+            raise Exception(f'Invalid aggregation strategy: {self.config.network.aggregation_strategy}')
+
         params_dist = self.param_head(transition_vector)
         param_loss = self.mse_criterion(params_dist, gt_params)
 

@@ -156,7 +156,14 @@ class BarlowTwinsAffineTrainer:
         loss = self.criterion(zis, zjs)
 
         rits, _ = self.model(xits)
-        transition_vector = ris - rits
+
+        if self.config.network.aggregation_strategy == 'diff':
+            transition_vector = ris - rits
+        elif self.config.network.aggregation_strategy == 'concat':
+            transition_vector = torch.cat([ris, rits], dim=-1)
+        else:
+            raise Exception(f'Invalid aggregation strategy: {self.config.network.aggregation_strategy}')
+
         params_dist = self.param_head(transition_vector)
         param_loss = self.mse_criterion(params_dist, gt_params)
 
@@ -213,6 +220,7 @@ class BarlowTwinsAffineTrainer:
 
             valid_loss = self._validate(val_loader)
 
+            logging.info({'train/loss': train_loss, 'val/loss': valid_loss})
             if self.config.general.log_to_wandb:
                 wandb.log({'train/loss': train_loss, 'val/loss': valid_loss})
 

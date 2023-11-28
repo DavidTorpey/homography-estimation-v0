@@ -5,7 +5,7 @@ from uuid import uuid4
 @dataclass
 class General:
     output_dir: str
-    log_to_wandb: bool = True
+    log_to_wandb: bool = False
     run_id: str = str(uuid4())
 
 
@@ -21,6 +21,7 @@ class Network:
     name: str = 'resnet18'
     mlp_head: MLP = field(default_factory=lambda: MLP())
     pred_head: MLP = field(default_factory=lambda: MLP())
+    aggregation_strategy: str = 'diff'
 
 
 @dataclass

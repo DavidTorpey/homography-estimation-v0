@@ -124,6 +124,7 @@ class BYOLAffineTrainer:
         self.dataset = config.data.dataset
         self.run_folder = config.general.output_dir
         self.warmup_steps = config.trainer.warmup_epochs
+        self.config = config
 
         self.m_base = 0.996
         self.m = 0.996
@@ -153,7 +154,14 @@ class BYOLAffineTrainer:
         loss += self.regression_loss(predictions_from_view_2, targets_to_view_2)
 
         rits, _ = self.model.online_network(xits)
-        transition_vector = ris1 - rits
+
+        if self.config.network.aggregation_strategy == 'diff':
+            transition_vector = ris1 - rits
+        elif self.config.network.aggregation_strategy == 'concat':
+            transition_vector = torch.cat([ris1, rits], dim=-1)
+        else:
+            raise Exception(f'Invalid aggregation strategy: {self.config.network.aggregation_strategy}')
+
         params_dist = self.param_head(transition_vector)
         param_loss = self.mse_criterion(params_dist, gt_params)
 
