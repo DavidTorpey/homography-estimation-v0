@@ -176,5 +176,5 @@ print(f"Testing accuracy: {100 * np.mean(acc)}")
 
 model_id = os.path.basename(args.model_path).split('.')[0]
 
-with open(os.path.join(run_folder, f'{model_id}_{config.data.dataset}_result.txt'), 'w') as f:
+with open(os.path.join(run_folder, f'{model_id}_{config.data.dataset}_result.txt'), 'a') as f:
     f.write('{}\n'.format(acc))
