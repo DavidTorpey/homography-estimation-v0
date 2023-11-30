@@ -2,7 +2,7 @@ import os
 from itertools import combinations, chain
 from pathlib import Path
 
-MODEL = 'byol'
+MODEL = 'simclr'
 
 f = f'config/msl/resnet50/{MODEL}-affine/tiny_imagenet/affine-components-ablations'
 
@@ -24,7 +24,7 @@ def process_le_pair(dataset, model_p):
 
     le_job_content = open(job_t_path).read()
     le_job_content = le_job_content.replace('<JOB_FOLDER>', os.path.dirname(new_config_path))
-    le_job_content = le_job_content.replace('<CONFIG_RELATIVE_PATH>', new_config_path)
+    le_job_content = le_job_content.replace('<CONFIG_RELATIVE_PATH>', new_le_config_path)
     le_job_content = le_job_content.replace('<MODEL_PATH>', model_p)
     new_le_job_path = os.path.join(p, f'job-le-{dataset}.sh')
     with open(new_le_job_path, 'w') as file:

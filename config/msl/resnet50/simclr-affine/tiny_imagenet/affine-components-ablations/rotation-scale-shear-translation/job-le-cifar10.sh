@@ -11,5 +11,5 @@ cd /home-mscluster/dtorpey/code/homography-estimation-v0
 . /home-mscluster/dtorpey/code/object-centricity-ssl/env.sh
 
 python -m he.linear_eval.run \
---config_path /home-mscluster/dtorpey/code/homography-estimation-v0/config/msl/resnet50/simclr-affine/tiny_imagenet/affine-components-ablations/rotation-scale-shear-translation/config.yaml \
+--config_path /home-mscluster/dtorpey/code/homography-estimation-v0/config/msl/resnet50/simclr-affine/tiny_imagenet/affine-components-ablations/rotation-scale-shear-translation/config-le-cifar10.yaml \
 --model_path /home-mscluster/dtorpey/code/homography-estimation-v0/results/resnet50/simclr-affine/tiny_imagenet/affine-components-ablations/rotation-scale-shear-translation/90_model_tiny_imagenet.pth
