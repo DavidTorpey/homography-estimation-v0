@@ -1,3 +1,4 @@
+import logging
 import os
 from argparse import ArgumentParser
 
@@ -89,6 +90,15 @@ def main():
 
     if args.run_num:
         config.general.output_dir = os.path.join(config.general.output_dir, args.run_num)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(module)s:%(funcName)s:%(lineno)d - %(message)s',
+        handlers=[
+            logging.FileHandler(os.path.join(config.general.output_dir, 'out.log')),
+            logging.StreamHandler()
+        ]
+    )
 
     train_le(config, args)
 
