@@ -5,7 +5,7 @@ from torchvision import transforms, datasets
 from he.linear_eval.food101 import get_food101
 
 
-def get_datasets(dataset, config, image_size, val_p=0.1):
+def get_datasets(dataset, config, image_size, val_p=0.2):
     train_transforms = torchvision.transforms.Compose([
         torchvision.transforms.RandomCrop((image_size, image_size)),
         transforms.ToTensor()

@@ -41,6 +41,7 @@ def get_food101(
     with open(train_images_path) as file:
         train_image_paths = file.read().splitlines()
     train_image_paths = add_ext(train_image_paths)
+    np.random.shuffle(train_image_paths)
 
     test_images_path = os.path.join(config.data.root, 'meta/test.txt')
     with open(test_images_path) as file:
