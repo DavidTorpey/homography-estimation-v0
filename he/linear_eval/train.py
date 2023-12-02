@@ -44,7 +44,7 @@ class Trainer:
                 if i % 10 == 0:
                     logging.info('Computing features: %s/%s', i + 1, len(loader))
                 x = x.to(self.config.trainer.device)
-                x = self.model(x).detach().cpu().numpy()
+                x = self.model(x).squeeze(dim=-1).squeeze(dim=-1).detach().cpu().numpy()
                 features.append(x)
 
                 y = y.cpu().numpy()
