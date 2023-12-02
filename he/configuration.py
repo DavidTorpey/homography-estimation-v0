@@ -47,6 +47,10 @@ class Trainer:
     num_workers: int = 4
     device: str = 'cpu'
 
+    logreg_steps: int = 10
+    models_in_parallel: int = 4
+    n_jobs: int = 2
+
 
 @dataclass
 class Optimiser:
