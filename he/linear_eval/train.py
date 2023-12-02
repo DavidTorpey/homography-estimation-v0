@@ -129,7 +129,7 @@ class Trainer:
         if self.config.general.log_to_wandb:
             wandb.log({'Test Accuracy': accuracy})
 
-        metrics_file_name = 'metrics.json'
+        metrics_file_name = f'metrics-{self.config.data.dataset}.json'
 
         result_file_path = os.path.join(
             self.config.general.output_dir,

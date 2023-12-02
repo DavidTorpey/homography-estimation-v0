@@ -77,7 +77,6 @@ def train_le(config: Config, args):
     trainer.test(test_loader, logistic_regression_model)
 
 
-
 def main():
     parser = ArgumentParser()
     parser.add_argument('--config_path', type=str, required=True)
@@ -91,8 +90,8 @@ def main():
     if args.run_num:
         config.general.output_dir = os.path.join(config.general.output_dir, args.run_num)
 
+    train_le(config, args)
 
 
 if __name__ == '__main__':
     main()
-
