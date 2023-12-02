@@ -14,12 +14,12 @@ from torch.utils.data import DataLoader
 from he.configuration import Config
 
 
-def train_and_test(config, C, x_train, y_train, x_val, y_val):
+def train_and_test(config: Config, C, x_train, y_train, x_val, y_val):
     logging.info('Training logistic regression model: C=%s', C)
 
     classifier = LogisticRegression(
         solver='lbfgs', multi_class='multinomial', warm_start=True, C=C,
-        n_jobs=config.optim.n_jobs
+        n_jobs=config.trainer.n_jobs
     )
 
     test_score = classifier.fit(x_train, y_train).score(x_val, y_val)
