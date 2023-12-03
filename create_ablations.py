@@ -2,7 +2,7 @@ import os
 from itertools import combinations, chain
 from pathlib import Path
 
-MODEL = 'byol'
+MODEL = 'barlow_twins'
 
 f = f'config/msl/resnet50/{MODEL}-affine/tiny_imagenet/affine-components-ablations'
 
