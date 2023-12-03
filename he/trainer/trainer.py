@@ -3,7 +3,7 @@ import logging
 from he.configuration import Config
 from he.trainer.barlow_twins import BarlowTwinsAffineTrainer, BarlowTwinsTrainer
 from he.trainer.byol import BYOLAffineTrainer, BYOLTrainer
-from he.trainer.simclr import SimCLRTrainer, SimCLRAffineTrainer
+from he.trainer.simclr import SimCLRTrainer, SimCLRAffineTrainer, SimCLRDoubleAffineTrainer
 
 
 def get_simclr_trainer(config, model, param_head, optimizer, scheduler):
@@ -13,9 +13,16 @@ def get_simclr_trainer(config, model, param_head, optimizer, scheduler):
             model, optimizer, scheduler, config
         )
     elif config.data.dataset_type == 'affine':
-        trainer = SimCLRAffineTrainer(
-            model, param_head, optimizer, scheduler, config
-        )
+        if config.data.affine_type == 'single':
+            trainer = SimCLRAffineTrainer(
+                model, param_head, optimizer, scheduler, config
+            )
+        elif config.data.affine_type == 'double':
+            trainer = SimCLRDoubleAffineTrainer(
+                model, param_head, optimizer, scheduler, config
+            )
+        else:
+            raise Exception(f'Invalid affine type: {config.data.affine_type}')
     else:
         raise Exception(f'Dataset type not supported: {config.data.dataset_type}')
 

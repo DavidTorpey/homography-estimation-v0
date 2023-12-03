@@ -32,6 +32,7 @@ class Data:
     dataset_type: str
     s: float = 1.0
     image_size: int = 32
+    affine_type: str = 'single'
 
     rotation: bool = True
     translation: bool = True
