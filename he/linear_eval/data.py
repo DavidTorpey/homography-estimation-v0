@@ -17,11 +17,13 @@ def get_datasets(dataset, config, image_size, val_p=0.1):
     ])
 
     if dataset == 'stl10':
-        train_dataset = datasets.STL10('./data', split='train', download=True,
-                                       transform=train_transforms)
+        train_dataset = datasets.STL10(
+            './data', split='train', download=True, transform=train_transforms
+        )
 
-        test_dataset = datasets.STL10('./data', split='test', download=True,
-                                      transform=test_transforms)
+        test_dataset = datasets.STL10(
+            './data', split='test', download=True, transform=test_transforms
+        )
     elif dataset == 'cifar10':
         train_dataset = datasets.CIFAR10('./data', train=True, download=True, transform=train_transforms)
         test_dataset = datasets.CIFAR10('./data', train=False, download=True, transform=test_transforms)
