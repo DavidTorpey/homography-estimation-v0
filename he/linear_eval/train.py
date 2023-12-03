@@ -129,11 +129,11 @@ class Trainer:
         if self.config.general.log_to_wandb:
             wandb.log({'Test Accuracy': accuracy})
 
-        metrics_file_name = f'metrics-{self.config.data.dataset}.json'
+        metrics_file_name = f'metrics-{self.config.data.dataset}.txt'
 
         result_file_path = os.path.join(
             self.config.general.output_dir,
             metrics_file_name
         )
-        with open(result_file_path, 'w') as file:
-            json.dump({'test_accuracy': accuracy}, file, indent=2)
+        with open(result_file_path, 'a') as file:
+            file.write(f'{accuracy}\n')
