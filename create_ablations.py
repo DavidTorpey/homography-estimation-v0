@@ -2,7 +2,7 @@ import os
 from itertools import combinations, chain
 from pathlib import Path
 
-MODEL = 'simclr'
+MODEL = 'byol'
 
 f = f'config/msl/resnet50/{MODEL}-affine/tiny_imagenet/affine-components-ablations'
 
@@ -78,3 +78,4 @@ for e in powerset(s):
     process_le_pair('cifar10', model_path)
     process_le_pair('cifar100', model_path)
     process_le_pair('food101', model_path)
+    process_le_pair('caltech101', model_path)
