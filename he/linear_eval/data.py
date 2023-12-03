@@ -7,12 +7,12 @@ from he.linear_eval.food101 import get_food101
 
 def get_datasets(dataset, config, image_size, val_p=0.1):
     train_transforms = torchvision.transforms.Compose([
-        torchvision.transforms.Resize((image_size, image_size)),
+        torchvision.transforms.RandomCrop((image_size, image_size)),
         transforms.ToTensor()
     ])
 
     test_transforms = torchvision.transforms.Compose([
-        torchvision.transforms.Resize((image_size, image_size)),
+        torchvision.transforms.RandomCrop((image_size, image_size)),
         transforms.ToTensor()
     ])
 
