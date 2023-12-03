@@ -1,8 +1,8 @@
 import logging
 
 from he.configuration import Config
-from he.trainer.barlow_twins import BarlowTwinsAffineTrainer, BarlowTwinsTrainer
-from he.trainer.byol import BYOLAffineTrainer, BYOLTrainer
+from he.trainer.barlow_twins import BarlowTwinsAffineTrainer, BarlowTwinsTrainer, BarlowTwinsDoubleAffineTrainer
+from he.trainer.byol import BYOLAffineTrainer, BYOLTrainer, BYOLDoubleAffineTrainer
 from he.trainer.simclr import SimCLRTrainer, SimCLRAffineTrainer, SimCLRDoubleAffineTrainer
 
 
@@ -36,9 +36,16 @@ def get_byol_trainer(config, model, param_head, optimizer, scheduler):
             model, optimizer, scheduler, config
         )
     elif config.data.dataset_type == 'affine':
-        trainer = BYOLAffineTrainer(
-            model, param_head, optimizer, scheduler, config
-        )
+        if config.data.affine_type == 'single':
+            trainer = BYOLAffineTrainer(
+                model, param_head, optimizer, scheduler, config
+            )
+        elif config.data.affine_type == 'double':
+            trainer = BYOLDoubleAffineTrainer(
+                model, param_head, optimizer, scheduler, config
+            )
+        else:
+            raise Exception(f'Invalid affine type: {config.data.affine_type}')
     else:
         raise Exception(f'Dataset type not supported: {config.data.dataset_type}')
 
@@ -52,9 +59,16 @@ def get_barlow_twins_trainer(config, model, param_head, optimizer, scheduler):
             model, optimizer, scheduler, config
         )
     elif config.data.dataset_type == 'affine':
-        trainer = BarlowTwinsAffineTrainer(
-            model, param_head, optimizer, scheduler, config
-        )
+        if config.data.affine_type == 'single':
+            trainer = BarlowTwinsAffineTrainer(
+                model, param_head, optimizer, scheduler, config
+            )
+        elif config.data.affine_type == 'double':
+            trainer = BarlowTwinsDoubleAffineTrainer(
+                model, param_head, optimizer, scheduler, config
+            )
+        else:
+            raise Exception(f'Invalid affine type: {config.data.affine_type}')
     else:
         raise Exception(f'Dataset type not supported: {config.data.dataset_type}')
 
