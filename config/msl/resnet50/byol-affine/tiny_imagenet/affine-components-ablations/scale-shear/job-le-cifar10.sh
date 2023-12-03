@@ -4,7 +4,7 @@
 #SBATCH --error=/home-mscluster/dtorpey/code/homography-estimation-v0/config/msl/resnet50/byol-affine/tiny_imagenet/affine-components-ablations/scale-shear/log-linear_eval.err
 #SBATCH --ntasks=1
 #SBATCH --time=60:00:00
-#SBATCH --partition=stampede
+#SBATCH --partition=bigbatch
 
 cd /home-mscluster/dtorpey/code/homography-estimation-v0
 
