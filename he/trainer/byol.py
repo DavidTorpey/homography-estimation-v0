@@ -271,7 +271,7 @@ class BYOLDoubleAffineTrainer:
         return 2 - 2 * (x * y).sum(dim=-1)
 
     def compute_affine_loss(self, xts, rs, gt_params):
-        rts, _ = self.model(xts)
+        rts, _ = self.model.online_network(xts)
         if self.config.network.aggregation_strategy == 'diff':
             transition_vector = rs - rts
         elif self.config.network.aggregation_strategy == 'concat':
