@@ -75,7 +75,7 @@ def train_le(config: Config, args):
 
     logistic_regression_model = trainer.train(train_loader, val_loader)
 
-    trainer.test(test_loader, logistic_regression_model)
+    trainer.test(test_loader, logistic_regression_model, args.model_path)
 
 
 def main():

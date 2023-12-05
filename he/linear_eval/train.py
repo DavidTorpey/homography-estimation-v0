@@ -110,7 +110,7 @@ class Trainer:
 
         return logistic_regression
 
-    def test(self, test_loader, logistic_regression):
+    def test(self, test_loader, logistic_regression, model_path):
         xte, yte = self.compute_features_for_loader(test_loader)
 
         accuracy = logistic_regression.score(xte, yte)
@@ -129,7 +129,8 @@ class Trainer:
         if self.config.general.log_to_wandb:
             wandb.log({'Test Accuracy': accuracy})
 
-        metrics_file_name = f'metrics-{self.config.data.dataset}.txt'
+        model_id = os.path.basename(model_path).split('.')[0]
+        metrics_file_name = f'metrics-{self.config.data.dataset}-{model_id}.txt'
 
         result_file_path = os.path.join(
             self.config.general.output_dir,
