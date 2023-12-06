@@ -8,21 +8,27 @@ from torch.utils.data import DataLoader
 import numpy as np
 
 from ..configuration import Config
-from ..model.backbone import ResNetSimCLR
+from ..model.backbone import Encoder
 from .model import LogisticRegression
 from .data import get_datasets
 from .utils import get_numpy_data
+from ..model.byol import BYOL
 
-batch_size = 512
 device = 'cuda'
 
 parser = ArgumentParser()
 parser.add_argument('--config_path', type=str, required=True)
 parser.add_argument('--model_path', type=str, required=True)
+parser.add_argument('--run_num', type=str, default=None)
 args = parser.parse_args()
 
 config_dict = yaml.load(open(args.config_path, "r"), Loader=yaml.FullLoader)
 config: Config = dacite.from_dict(Config, config_dict)
+
+if args.run_num:
+    config.general.output_dir = os.path.join(config.general.output_dir, args.run_num)
+
+batch_size = config.trainer.batch_size
 
 run_folder = config.general.output_dir
 
@@ -31,7 +37,7 @@ print('Using dataset:', dataset)
 
 num_classes = config.data.num_classes
 
-train_dataset, val_dataset, test_dataset = get_datasets(dataset, config.data.image_size)
+train_dataset, val_dataset, test_dataset = get_datasets(dataset, config, config.data.image_size)
 
 print("Input shape:", train_dataset[0][0].shape)
 
@@ -42,16 +48,41 @@ val_loader = DataLoader(val_dataset, batch_size=batch_size,
 test_loader = DataLoader(test_dataset, batch_size=batch_size,
                          num_workers=0, drop_last=False, shuffle=True)
 
-encoder = ResNetSimCLR(config)
-output_feature_dim = encoder.projection.net[0].in_features
-model_file_path = args.model_path
-load_params = torch.load(
-    model_file_path,
-    map_location=torch.device(device)
-)
-encoder.load_state_dict(load_params)
-encoder = encoder.encoder
-encoder = encoder.to(device)
+if config.network.algo == 'simclr':
+    encoder = Encoder(config)
+    output_feature_dim = encoder.projection.net[0].in_features
+    model_file_path = args.model_path
+    load_params = torch.load(
+        model_file_path,
+        map_location=torch.device(device)
+    )
+    encoder.load_state_dict(load_params)
+    encoder = encoder.encoder
+    encoder = encoder.to(device)
+elif config.network.algo == 'byol':
+    byol = BYOL(config)
+    model_file_path = args.model_path
+    load_params = torch.load(
+        model_file_path,
+        map_location=torch.device(device)
+    )
+    byol.load_state_dict(load_params)
+    encoder = byol.online_network.encoder
+    output_feature_dim = 2048 if config.network.name == 'resnet50' else 512
+    encoder = encoder.to(device)
+elif config.network.algo == 'barlow_twins':
+    encoder = Encoder(config)
+    output_feature_dim = encoder.projection.net[0].in_features
+    model_file_path = args.model_path
+    load_params = torch.load(
+        model_file_path,
+        map_location=torch.device(device)
+    )
+    encoder.load_state_dict(load_params)
+    encoder = encoder.encoder
+    encoder = encoder.to(device)
+else:
+    raise Exception(f'Invalid model: {config.network.algo}')
 
 x_train, y_train, x_val, y_val, x_test, y_test = \
     get_numpy_data(
@@ -143,5 +174,7 @@ for x, y in test_loader:
 acc = correct / total
 print(f"Testing accuracy: {100 * np.mean(acc)}")
 
-with open(os.path.join(run_folder, 'result.txt'), 'w') as f:
+model_id = os.path.basename(args.model_path).split('.')[0]
+
+with open(os.path.join(run_folder, f'{model_id}_{config.data.dataset}_result.txt'), 'a') as f:
     f.write('{}\n'.format(acc))

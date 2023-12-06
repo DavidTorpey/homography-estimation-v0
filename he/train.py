@@ -1,31 +1,32 @@
+import json
 import logging
 import os
-import sys
 from argparse import ArgumentParser
+from dataclasses import asdict
 from pathlib import Path
 
 import dacite
 import torch
 import yaml
-from torchvision import datasets
 
 from he.configuration import Config
 from he.data.data import get_data
+from he.model.model import get_model
 from he.model.projection_head import MLPHead
-from .data.augmentations import get_simclr_data_transforms
-from .data.multiview_injector import MultiViewDataInjector
-from .model.backbone import ResNetSimCLR
-from .data.utils import get_train_validation_data_loaders
-from .trainer import Trainer, AffineTrainer
+from he.trainer.trainer import get_trainer
 
 
 def main():
     parser = ArgumentParser()
     parser.add_argument('--config_path', type=str, required=True)
+    parser.add_argument('--run_num', type=str, default=None)
     args = parser.parse_args()
 
     config_dict = yaml.load(open(args.config_path, "r"), Loader=yaml.FullLoader)
     config: Config = dacite.from_dict(Config, config_dict)
+
+    if args.run_num:
+        config.general.output_dir = os.path.join(config.general.output_dir, args.run_num)
 
     run_folder = config.general.output_dir
     Path(run_folder).mkdir(parents=True, exist_ok=True)
@@ -37,26 +38,35 @@ def main():
             logging.StreamHandler()
         ]
     )
+    with open(os.path.join(config.general.output_dir, 'config.json'), 'w') as handle:
+        json.dump(asdict(config), handle, indent=2)
 
     dataset = config.data.dataset
 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    logging.info(f"Training with: {device}")
-    logging.info('Using dataset:', dataset)
+    logging.info(f"Training with device: {config.trainer.device}")
+    logging.info('Using dataset: %s', dataset)
 
     train_loader, valid_loader = get_data(config)
 
-    logging.info('Initialising SimCLR model')
-    model = ResNetSimCLR(config).to(device)
+    model = get_model(config).to(config.trainer.device)
 
     param_head = None
     if config.data.dataset_type == 'affine':
         logging.info('Initialising param head')
+        encoder_dim = 512 if config.network.name == 'resnet18' else 2048
+
+        if config.network.aggregation_strategy == 'diff':
+            in_channel = encoder_dim
+        elif config.network.aggregation_strategy == 'concat':
+            in_channel = encoder_dim * 2
+        else:
+            raise Exception(f'Invalid aggregation strategy: {config.network.aggregation_strategy}')
+
         param_head = MLPHead(
-            in_channels=512 if config.network.name == 'resnet18' else 2048,
+            in_channels=in_channel,
             hidden_size=config.network.pred_head.hidden_size,
             proj_size=config.network.pred_head.proj_size
-        ).to(device)
+        ).to(config.trainer.device)
 
     if config.data.dataset_type == 'default':
         optimizer = torch.optim.Adam(
@@ -73,28 +83,11 @@ def main():
     else:
         raise Exception(f'Dataset type not supported: {config.data.dataset_type}')
 
-    batch_size = config.trainer.batch_size
-    epochs = config.trainer.epochs
-
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=len(train_loader), eta_min=0, last_epoch=-1
     )
 
-    warmup_steps = config.trainer.warmup_epochs
-
-    logging.info('Initialising trainer for dataset_type=%s', config.data.dataset_type)
-    if config.data.dataset_type == 'default':
-        trainer = Trainer(
-            model, optimizer, scheduler, batch_size, epochs, device, dataset,
-            run_folder, warmup_steps
-        )
-    elif config.data.dataset_type == 'affine':
-        trainer = AffineTrainer(
-            model, param_head, optimizer, scheduler, batch_size,
-            epochs, device, dataset, run_folder, warmup_steps
-        )
-    else:
-        raise Exception(f'Dataset type not supported: {config.data.dataset_type}')
+    trainer = get_trainer(config, model, param_head, optimizer, scheduler)
 
     trainer.train(train_loader, valid_loader)
 
