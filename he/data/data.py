@@ -8,7 +8,7 @@ from torchvision import datasets
 
 from he.configuration import Config
 from he.data.augmentations import get_simclr_data_transforms
-from he.data.dataset import CustomDataset, DefaultDataset, AffineDataset, DoubleAffineDataset
+from he.data.dataset import CustomDataset, DefaultDataset, AffineDataset, DoubleAffineDataset, BoundedAffineDataset
 from he.data.multiview_injector import MultiViewDataInjector
 from he.data.utils import get_train_validation_data_loaders
 
@@ -87,6 +87,11 @@ def get_affine(config: Config):
             )
         elif config.data.affine_type == 'double':
             train_dataset = DoubleAffineDataset(
+                image_paths,
+                config
+            )
+        elif config.data.affine_type == 'bounded':
+            train_dataset = BoundedAffineDataset(
                 image_paths,
                 config
             )

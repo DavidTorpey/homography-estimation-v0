@@ -21,6 +21,10 @@ def get_simclr_trainer(config, model, param_head, optimizer, scheduler):
             trainer = SimCLRDoubleAffineTrainer(
                 model, param_head, optimizer, scheduler, config
             )
+        elif config.data.affine_type == 'bounded':
+            trainer = SimCLRAffineTrainer(
+                model, param_head, optimizer, scheduler, config
+            )
         else:
             raise Exception(f'Invalid affine type: {config.data.affine_type}')
     else:
@@ -44,6 +48,10 @@ def get_byol_trainer(config, model, param_head, optimizer, scheduler):
             trainer = BYOLDoubleAffineTrainer(
                 model, param_head, optimizer, scheduler, config
             )
+        elif config.data.affine_type == 'bounded':
+            trainer = BYOLAffineTrainer(
+                model, param_head, optimizer, scheduler, config
+            )
         else:
             raise Exception(f'Invalid affine type: {config.data.affine_type}')
     else:
@@ -65,6 +73,10 @@ def get_barlow_twins_trainer(config, model, param_head, optimizer, scheduler):
             )
         elif config.data.affine_type == 'double':
             trainer = BarlowTwinsDoubleAffineTrainer(
+                model, param_head, optimizer, scheduler, config
+            )
+        elif config.data.affine_type == 'bounded':
+            trainer = BarlowTwinsAffineTrainer(
                 model, param_head, optimizer, scheduler, config
             )
         else:
