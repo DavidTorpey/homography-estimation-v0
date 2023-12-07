@@ -112,6 +112,7 @@ class BoundedAffineDataset(Dataset):
         self.image_size = config.data.image_size
         self.s = config.data.s
         self.config = config
+        self.rs = tvtransforms.Resize((self.image_size, self.image_size))
 
     def __len__(self):
         return len(self.paths)
@@ -169,6 +170,7 @@ class BoundedAffineDataset(Dataset):
         x1t, params = random_affine(x1)
         angle, (tx, ty), scale, shear = params
         x1t = bounded_affine(x1, angle, (tx, ty), scale, shear)
+        x1t = self.rs(x1t)
 
         param_vec_elements = []
         if self.config.data.rotation:
