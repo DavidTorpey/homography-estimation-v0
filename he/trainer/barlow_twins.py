@@ -222,7 +222,7 @@ class BarlowTwinsAffineTrainer:
                 gt_params = gt_params.to(self.device)
 
                 ssl_loss, affine_loss = self._step(xis, xjs, xits, gt_params)
-                loss = ssl_loss + affine_loss
+                loss = self.config.trainer.beta1 * ssl_loss + self.config.trainer.beta2 * affine_loss
 
                 loss.backward()
 
