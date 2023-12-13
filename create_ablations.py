@@ -4,17 +4,17 @@ from pathlib import Path
 
 MODEL = 'barlow_twins'
 
-f = f'config/msl/resnet50/{MODEL}-affine/tiny_imagenet/affine-components-ablations'
+f = f'config/msl/resnet50/{MODEL}-affine-investigate-losses/tiny_imagenet/affine-components-ablations'
 
-template_config_path = f'config/msl/resnet50/{MODEL}-affine/tiny_imagenet/config.yaml.template'
-template_job_path = f'config/msl/resnet50/{MODEL}-affine/tiny_imagenet/job.sh.template'
+template_config_path = f'config/msl/resnet50/{MODEL}-affine-investigate-losses/tiny_imagenet/config.yaml.template'
+template_job_path = f'config/msl/resnet50/{MODEL}-affine-investigate-losses/tiny_imagenet/job.sh.template'
 
 s = ['shear', 'rotation', 'translation', 'scale']
 
 
 def process_le_pair(dataset, model_p):
-    config_t_path = f'config/msl/resnet50/{MODEL}-affine/tiny_imagenet/config-le-{dataset}.yaml.template'
-    job_t_path = f'config/msl/resnet50/{MODEL}-affine/tiny_imagenet/job-le-{dataset}.sh.template'
+    config_t_path = f'config/msl/resnet50/{MODEL}-affine-investigate-losses/tiny_imagenet/config-le-{dataset}.yaml.template'
+    job_t_path = f'config/msl/resnet50/{MODEL}-affine-investigate-losses/tiny_imagenet/job-le-{dataset}.sh.template'
     le_config_content = open(config_t_path).read()
     le_config_content = le_config_content.replace('<COMBO>', ee)
     le_config_content = le_config_content.replace('<PROJ_SIZE>', str(proj_size))
@@ -74,8 +74,8 @@ for e in powerset(s):
     with open(new_job_path, 'w') as file:
         file.write(job_content)
 
-    model_path = f'/home-mscluster/dtorpey/code/homography-estimation-v0/results/resnet50/{MODEL}-affine/tiny_imagenet/affine-components-ablations/{ee}/90_model_tiny_imagenet.pth'
+    model_path = f'/home-mscluster/dtorpey/code/homography-estimation-v0/results/resnet50/{MODEL}-affine-investigate-losses/tiny_imagenet/affine-components-ablations/{ee}/90_model_tiny_imagenet.pth'
     process_le_pair('cifar10', model_path)
     process_le_pair('cifar100', model_path)
-    process_le_pair('food101', model_path)
+    # process_le_pair('food101', model_path)
     process_le_pair('caltech101', model_path)
