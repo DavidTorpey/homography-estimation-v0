@@ -1,5 +1,6 @@
 import logging
 import os
+from copy import deepcopy
 from dataclasses import asdict
 
 import wandb
@@ -166,7 +167,7 @@ class BarlowTwinsAffineTrainer:
         params_dist = self.param_head(transition_vector)
         param_loss = self.mse_criterion(params_dist, gt_params)
 
-        return loss + param_loss
+        return loss, param_loss
 
     def _validate(self, val_loader):
         with torch.no_grad():
@@ -174,6 +175,8 @@ class BarlowTwinsAffineTrainer:
             self.param_head.eval()
 
             valid_loss = 0.0
+            valid_ssl_loss = 0.0
+            valid_affine_loss = 0.0
             counter = 0
             for xis, xjs, xits, gt_params in val_loader:
                 xis = xis.to(self.device)
@@ -181,14 +184,23 @@ class BarlowTwinsAffineTrainer:
                 xits = xits.to(self.device)
                 gt_params = gt_params.to(self.device)
 
-                loss = self._step(xis, xjs, xits, gt_params)
+                ssl_loss, affine_loss = self._step(xis, xjs, xits, gt_params)
+                loss = ssl_loss + affine_loss
                 valid_loss += loss.item()
+                valid_ssl_loss += ssl_loss.item()
+                valid_affine_loss += affine_loss.item()
                 counter += 1
             valid_loss /= counter
+            valid_ssl_loss /= counter
+            valid_affine_loss /= counter
         self.model.train()
         self.param_head.train()
 
-        return valid_loss
+        return {
+            'val/loss': valid_loss,
+            'val/ssl_loss': ssl_loss,
+            'val/affine_loss': affine_loss,
+        }
 
     def train(self, train_loader, val_loader):
         n_iter = 0
@@ -199,6 +211,8 @@ class BarlowTwinsAffineTrainer:
             logging.info('%s/%s', epoch_counter + 1, self.epochs)
 
             train_loss = 0.0
+            train_ssl_loss = 0.0
+            train_affine_loss = 0.0
             for xis, xjs, xits, gt_params in train_loader:
                 self.optimizer.zero_grad()
 
@@ -207,21 +221,32 @@ class BarlowTwinsAffineTrainer:
                 xits = xits.to(self.device)
                 gt_params = gt_params.to(self.device)
 
-                loss = self._step(xis, xjs, xits, gt_params)
+                ssl_loss, affine_loss = self._step(xis, xjs, xits, gt_params)
+                loss = ssl_loss + affine_loss
 
                 loss.backward()
 
                 train_loss += float(loss.item())
+                train_ssl_loss += float(ssl_loss.item())
+                train_affine_loss += float(affine_loss.item())
 
                 self.optimizer.step()
                 n_iter += 1
             train_loss /= len(train_loader)
+            train_ssl_loss /= len(train_loader)
+            train_affine_loss /= len(train_loader)
+            train_metrics = {
+                'train/loss': train_loss, 'train/ssl_loss': train_ssl_loss, 'train/affine_loss': train_affine_loss
+            }
 
-            valid_loss = self._validate(val_loader)
+            valid_metrics = self._validate(val_loader)
+            valid_loss = valid_metrics['val/loss']
 
-            logging.info({'train/loss': train_loss, 'val/loss': valid_loss})
+            metrics = deepcopy(train_metrics)
+            metrics.update(valid_metrics)
+            logging.info(metrics)
             if self.config.general.log_to_wandb:
-                wandb.log({'train/loss': train_loss, 'val/loss': valid_loss})
+                wandb.log(metrics)
 
             if valid_loss < best_valid_loss:
                 best_valid_loss = valid_loss
