@@ -11,4 +11,4 @@ cd /home-mscluster/dtorpey/code/homography-estimation-v0
 . /home-mscluster/dtorpey/code/object-centricity-ssl/env.sh
 
 python -m he.train \
---config_path /home-mscluster/dtorpey/code/homography-estimation-v0/config/msl/resnet50/byol-affine-bounded/tiny_imagenet/config.yaml
+--config_path /home-mscluster/dtorpey/code/homography-estimation-v0/config/msl/resnet50/byol-affine/tiny_imagenet/config-bounded.yaml
