@@ -34,10 +34,10 @@ def main():
     args = p.parse_args()
     
     # template = 'results/resnet50/{model}/tiny_imagenet/metrics-{dataset}.txt'
-    template = 'results/resnet50/{model}-affine-bounded/tiny_imagenet/metrics-{dataset}-90_model_tiny_imagenet.txt'
+    template = 'results/resnet50/{model}/tiny_imagenet/metrics-{dataset}-90_model_tiny_imagenet.txt'
 
     data = [['model', 'cifar10', 'cifar100', 'caltech101']]
-    for model in ['simclr', 'byol', 'barlow_twins']:
+    for model in ['simclr-affine-bounded', 'byol-affine-bounded', 'barlow_twins-affine-bounded', 'barlow_twins-affine-investigate-losses-bounded']:
         cifar10 = get_metric(template.format(model=model, dataset='cifar10'), args.N, args.ci)
         cifar100 = get_metric(template.format(model=model, dataset='cifar100'), args.N, args.ci)
         caltech101 = get_metric(template.format(model=model, dataset='caltech101'), args.N, args.ci)
