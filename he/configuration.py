@@ -48,6 +48,9 @@ class Trainer:
     num_workers: int = 4
     device: str = 'cpu'
 
+    beta1: float = 1.0
+    beta2: float = 1.0
+
     logreg_steps: int = 10
     models_in_parallel: int = 4
     n_jobs: int = 2

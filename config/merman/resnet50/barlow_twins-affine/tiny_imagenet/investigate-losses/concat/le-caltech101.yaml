@@ -1,0 +1,23 @@
+general:
+  output_dir: ./results/resnet50/barlow_twins-affine/tiny_imagenet/investigate-losses-concat
+network:
+  algo: barlow_twins
+  name: resnet50
+  mlp_head:
+    hidden_size: 512
+    proj_size: 128
+data:
+  s: 1
+  image_size: 224
+  dataset: caltech101
+  root: /mnt/data/home/david/data/caltech101/101_ObjectCategories
+  num_classes: 101
+  dataset_type: default
+trainer:
+  batch_size: 16
+  epochs: 100
+  num_workers: 4
+  device: cuda
+optimizer:
+  lr: 0.03
+  weight_decay: 0.0004
