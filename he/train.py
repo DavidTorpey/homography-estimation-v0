@@ -11,6 +11,7 @@ import yaml
 
 from he.configuration import Config
 from he.data.data import get_data
+from he.model.affine_head import get_affine_head
 from he.model.model import get_model
 from he.model.projection_head import MLPHead
 from he.trainer.trainer import get_trainer
@@ -50,7 +51,7 @@ def main():
 
     model = get_model(config).to(config.trainer.device)
 
-
+    param_head = get_affine_head(config)
 
     if config.data.dataset_type == 'default':
         optimizer = torch.optim.Adam(
