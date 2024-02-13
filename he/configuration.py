@@ -22,6 +22,7 @@ class Network:
     mlp_head: MLP = field(default_factory=lambda: MLP())
     pred_head: MLP = field(default_factory=lambda: MLP())
     aggregation_strategy: str = 'diff'
+    aggregation_location: str = 'f'
 
 
 @dataclass

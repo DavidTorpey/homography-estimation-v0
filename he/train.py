@@ -50,23 +50,7 @@ def main():
 
     model = get_model(config).to(config.trainer.device)
 
-    param_head = None
-    if config.data.dataset_type == 'affine':
-        logging.info('Initialising param head')
-        encoder_dim = 512 if config.network.name == 'resnet18' else 2048
 
-        if config.network.aggregation_strategy == 'diff':
-            in_channel = encoder_dim
-        elif config.network.aggregation_strategy == 'concat':
-            in_channel = encoder_dim * 2
-        else:
-            raise Exception(f'Invalid aggregation strategy: {config.network.aggregation_strategy}')
-
-        param_head = MLPHead(
-            in_channels=in_channel,
-            hidden_size=config.network.pred_head.hidden_size,
-            proj_size=config.network.pred_head.proj_size
-        ).to(config.trainer.device)
 
     if config.data.dataset_type == 'default':
         optimizer = torch.optim.Adam(
