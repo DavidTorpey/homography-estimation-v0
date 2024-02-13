@@ -163,14 +163,24 @@ class BYOLAffineTrainer:
         loss = self.regression_loss(predictions_from_view_1, targets_to_view_1)
         loss += self.regression_loss(predictions_from_view_2, targets_to_view_2)
 
-        rits, _ = self.model.online_network(xits)
+        rits, zits = self.model.online_network(xits)
 
-        if self.config.network.aggregation_strategy == 'diff':
-            transition_vector = ris1 - rits
-        elif self.config.network.aggregation_strategy == 'concat':
-            transition_vector = torch.cat([ris1, rits], dim=-1)
+        if self.config.network.aggregation_location == 'f':
+            if self.config.network.aggregation_strategy == 'diff':
+                transition_vector = ris1 - rits
+            elif self.config.network.aggregation_strategy == 'concat':
+                transition_vector = torch.cat([ris1, rits], dim=-1)
+            else:
+                raise Exception(f'Invalid aggregation strategy: {self.config.network.aggregation_strategy}')
+        elif self.config.network.aggregation_location == 'g':
+            if self.config.network.aggregation_strategy == 'diff':
+                transition_vector = zis1 - zits
+            elif self.config.network.aggregation_strategy == 'concat':
+                transition_vector = torch.cat([zis1, zits], dim=-1)
+            else:
+                raise Exception(f'Invalid aggregation strategy: {self.config.network.aggregation_strategy}')
         else:
-            raise Exception(f'Invalid aggregation strategy: {self.config.network.aggregation_strategy}')
+            raise Exception(f'Invalid aggregation location: {self.config.network.aggregation_location}')
 
         params_dist = self.param_head(transition_vector)
         param_loss = self.mse_criterion(params_dist, gt_params)

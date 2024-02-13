@@ -155,14 +155,24 @@ class BarlowTwinsAffineTrainer:
 
         loss = self.criterion(zis, zjs)
 
-        rits, _ = self.model(xits)
+        rits, zits = self.model(xits)
 
-        if self.config.network.aggregation_strategy == 'diff':
-            transition_vector = ris - rits
-        elif self.config.network.aggregation_strategy == 'concat':
-            transition_vector = torch.cat([ris, rits], dim=-1)
+        if self.config.network.aggregation_location == 'f':
+            if self.config.network.aggregation_strategy == 'diff':
+                transition_vector = ris - rits
+            elif self.config.network.aggregation_strategy == 'concat':
+                transition_vector = torch.cat([ris, rits], dim=-1)
+            else:
+                raise Exception(f'Invalid aggregation strategy: {self.config.network.aggregation_strategy}')
+        elif self.config.network.aggregation_location == 'g':
+            if self.config.network.aggregation_strategy == 'diff':
+                transition_vector = zis - zits
+            elif self.config.network.aggregation_strategy == 'concat':
+                transition_vector = torch.cat([zis, zits], dim=-1)
+            else:
+                raise Exception(f'Invalid aggregation strategy: {self.config.network.aggregation_strategy}')
         else:
-            raise Exception(f'Invalid aggregation strategy: {self.config.network.aggregation_strategy}')
+            raise Exception(f'Invalid aggregation location: {self.config.network.aggregation_location}')
 
         params_dist = self.param_head(transition_vector)
         param_loss = self.mse_criterion(params_dist, gt_params)
